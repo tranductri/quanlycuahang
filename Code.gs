@@ -3,6 +3,7 @@
 // =============================================
 var SHEET_CA = 'ca_lam_viec';
 var SHEET_SP = 'san_pham';
+var SPREADSHEET_ID = '1EfEAvuYPyf3GWVbi7egfR6SI3riNKPsCiVW0OFZLpg8';
 
 var FALLBACK_SP = [
   {ten: 'Bánh bao xúc xích phomai', gia: 20000},
@@ -46,7 +47,7 @@ function doPost(e) {
     var raw = (e && e.postData) ? e.postData.contents : '{}';
     var data = JSON.parse(raw);
 
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName(SHEET_CA);
 
     if (!sheet) {
@@ -80,7 +81,7 @@ function doPost(e) {
 // =============================================
 function docSanPham() {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName(SHEET_SP);
     if (!sheet || sheet.getLastRow() < 2) return FALLBACK_SP;
 
