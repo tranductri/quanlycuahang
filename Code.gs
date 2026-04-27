@@ -33,6 +33,12 @@ function doPost(e) {
     var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName(SHEET_CA);
 
+    // Tự xoá và tạo lại nếu số cột không khớp schema hiện tại
+    if (sheet && sheet.getLastColumn() !== buildHeaders().length) {
+      ss.deleteSheet(sheet);
+      sheet = null;
+    }
+
     if (!sheet) {
       sheet = ss.insertSheet(SHEET_CA);
       var headers = buildHeaders();
@@ -66,7 +72,8 @@ function buildHeaders() {
     var n = '['+p.ten+'] ';
     h.push(n+'Đầu H1', n+'Đầu H2', n+'Đầu Kho',
            n+'Xuất', n+'Nhập', n+'Hư', n+'KM',
-           n+'Cuối TT', n+'Dự kiến', n+'Lệch', n+'Doanh thu');
+           n+'Cuối TT', n+'Dự kiến', n+'Lệch',
+           n+'Tiêu thụ (cái)', n+'Doanh thu');
   });
 
   // Cash denominations
@@ -107,7 +114,7 @@ function buildRow(data) {
     var dt        = tieu_thu * p.gia;
     totalRev += dt;
 
-    row.push(dau_h1, dau_h2, dau_kho, xuat, nhap, hu, km, cuoi_thuc, predicted, lech, dt);
+    row.push(dau_h1, dau_h2, dau_kho, xuat, nhap, hu, km, cuoi_thuc, predicted, lech, tieu_thu, dt);
   });
 
   var tienDau  = data.tien_dau  || {};
