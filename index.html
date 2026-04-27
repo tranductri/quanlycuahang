@@ -2,906 +2,684 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Kiểm Kê Ca — Tiệm Bánh</title>
+  <title>Kiểm Kê Ca</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    /* ─── Variables ─────────────────────────────────── */
     :root {
-      --primary:   #1a73e8;
-      --success:   #1e8e3e;
-      --danger:    #c5221f;
-      --warning:   #b06000;
-      --bg:        #f0f4f8;
-      --card:      #ffffff;
-      --text:      #202124;
-      --muted:     #5f6368;
-      --border:    #dadce0;
-      --calc-bg:   #f8f9fa;
-      --blue-light:#e8f0fe;
+      --ink:#1c1614; --ink-2:#3d322c; --muted:#8a7d75;
+      --paper:#fbf7f2; --paper-2:#f3ece3;
+      --line:#e6ddd1; --line-2:#d8cbb9; --card:#ffffff;
+      --accent:#c1502e; --accent-soft:#f8e6dd; --accent-ink:#7a2e15;
+      --ok:#2d6a4f; --ok-soft:#d8efe1;
+      --warn:#b06000;
+      --err:#c5221f; --err-soft:#fce8e6;
+      --shadow-md:0 4px 12px rgba(28,22,20,.08),0 2px 4px rgba(28,22,20,.04);
+      --r:14px; --r-lg:20px;
     }
-
-    /* ─── Reset ─────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      font-size: 16px;
-      line-height: 1.5;
-      padding-bottom: 48px;
-    }
-
-    /* ─── Header ─────────────────────────────────────── */
-    .app-header {
-      background: var(--primary);
-      color: #fff;
-      padding: 14px 16px 12px;
-      text-align: center;
-      position: sticky;
-      top: 0;
-      z-index: 200;
-      box-shadow: 0 2px 6px rgba(0,0,0,.25);
-    }
-    .app-header h1 { font-size: 18px; font-weight: 700; letter-spacing: .2px; }
-    .app-header p  { font-size: 12px; opacity: .82; margin-top: 3px; }
-
-    /* ─── Layout ─────────────────────────────────────── */
-    .container {
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 12px 10px;
-    }
-
-    /* ─── Cards ──────────────────────────────────────── */
-    .card {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 16px 14px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.10);
-    }
-    .card h2 {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 14px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid var(--primary);
-      text-transform: uppercase;
-      letter-spacing: .4px;
-    }
-
-    /* ─── Form controls ──────────────────────────────── */
-    .form-group { margin-bottom: 13px; }
-    .form-group:last-child { margin-bottom: 0; }
-    .form-group label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--muted);
-      margin-bottom: 5px;
-    }
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    input[type="date"],
-    input[type="time"],
-    input[type="text"],
-    input[type="number"],
-    select,
-    textarea {
-      width: 100%;
-      min-height: 46px;
-      padding: 8px 12px;
-      border: 1.5px solid var(--border);
-      border-radius: 9px;
-      font-size: 16px;   /* ≥16px prevents iOS auto-zoom */
-      color: var(--text);
-      background: #fff;
-      transition: border-color .18s, box-shadow .18s;
-      -webkit-appearance: none;
-      appearance: none;
-    }
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(26,115,232,.18);
-    }
-    select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235f6368' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 34px;
-    }
-    textarea {
-      min-height: 90px;
-      resize: vertical;
-      line-height: 1.5;
-    }
-
-    /* ─── Tables shared ──────────────────────────────── */
-    .table-wrap {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-    }
-    table {
-      border-collapse: collapse;
-      width: max-content;
-      min-width: 100%;
-      font-size: 14px;
-    }
-    th, td {
-      padding: 7px 5px;
-      border: 1px solid var(--border);
-      text-align: center;
-      vertical-align: middle;
-      white-space: nowrap;
-    }
-    thead th {
-      background: var(--blue-light);
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--primary);
-      line-height: 1.3;
-    }
-    tbody tr:nth-child(even) { background: #fafbff; }
-    tfoot td {
-      background: #f1f5ff;
-      font-weight: 700;
-    }
-
-    /* ─── Product table specifics ────────────────────── */
-    .col-name {
-      text-align: left !important;
-      min-width: 150px;
-      max-width: 150px;
-      position: sticky;
-      left: 0;
-      background: inherit;
-      z-index: 10;
-      padding-left: 8px !important;
-      white-space: normal !important;
-      font-size: 13px;
-      font-weight: 600;
-      line-height: 1.3;
-    }
-    thead .col-name {
-      z-index: 20;
-      background: var(--blue-light);
-    }
-    .price-note {
-      font-size: 11px;
-      color: var(--muted);
-      font-weight: 400;
-    }
-    .table-wrap table input[type="number"] {
-      width: 58px;
-      min-height: 40px;
-      padding: 4px 2px;
-      font-size: 15px;
-      text-align: center;
-      border-radius: 7px;
-      border: 1.5px solid var(--border);
-    }
-    .calc-cell {
-      background: var(--calc-bg) !important;
-      min-width: 70px;
-    }
-    .calc-cell span { font-weight: 700; font-size: 13px; }
-    .negative { color: var(--danger) !important; }
-
-    /* ─── Cash table specifics ───────────────────────── */
-    .cash-table .denom-label {
-      text-align: right !important;
-      font-weight: 600;
-      min-width: 90px;
-      padding-right: 10px !important;
-    }
-    .cash-table input[type="number"] {
-      width: 68px;
-    }
-
-    /* ─── Legend ─────────────────────────────────────── */
-    .legend {
-      margin-top: 10px;
-      background: var(--calc-bg);
-      border-radius: 8px;
-      padding: 9px 12px;
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.8;
-    }
-    .legend strong { color: var(--text); }
-    .badge-calc {
-      display: inline-block;
-      background: var(--calc-bg);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 6px;
-      font-size: 11px;
-    }
-
-    /* ─── Summary rows ───────────────────────────────── */
-    .summary-box {
-      background: var(--calc-bg);
-      border-radius: 10px;
-      padding: 12px 14px;
-      margin-top: 10px;
-    }
-    .sum-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 7px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 14px;
-    }
-    .sum-row:last-child { border-bottom: none; }
-    .sum-row .lbl { color: var(--muted); }
-    .sum-row .val { font-weight: 700; }
-    .sum-row.total {
-      border-top: 2px solid var(--border);
-      padding-top: 11px;
-      margin-top: 4px;
-      font-size: 15px;
-    }
-    .sum-row.total .lbl { font-weight: 700; color: var(--text); }
-    .sum-row.total .val { font-size: 18px; color: var(--primary); }
-
-    /* ─── Match status ───────────────────────────────── */
-    .match-status {
-      padding: 13px 16px;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 700;
-      text-align: center;
-      margin: 12px 0 4px;
-      line-height: 1.4;
-    }
-    .match-status.neutral  { background: #f1f3f4; color: var(--muted); }
-    .match-status.match    { background: #e6f4ea; color: var(--success); }
-    .match-status.mismatch { background: #fce8e6; color: var(--danger); }
-    .match-status.warn     { background: #fef7e0; color: var(--warning); }
-
-    /* ─── Submit button ──────────────────────────────── */
-    #btn_submit {
-      width: 100%;
-      min-height: 54px;
-      border: none;
-      border-radius: 12px;
-      font-size: 17px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all .18s;
-      margin-top: 10px;
-      letter-spacing: .3px;
-    }
-    #btn_submit.ready   { background: var(--success); color: #fff; }
-    #btn_submit.ready:active { transform: scale(.97); }
-    #btn_submit.blocked { background: var(--border); color: var(--muted); cursor: not-allowed; }
-    #btn_submit.warn    { background: #f9ab00; color: #3c2a00; }
-    #btn_submit.loading { background: var(--blue-light); color: var(--primary); cursor: wait; }
-
-    /* ─── Toast ──────────────────────────────────────── */
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: #323232;
-      color: #fff;
-      padding: 13px 24px;
-      border-radius: 28px;
-      font-size: 14px;
-      font-weight: 600;
-      z-index: 9999;
-      opacity: 0;
-      transition: opacity .25s, transform .25s;
-      max-width: 92vw;
-      text-align: center;
-      pointer-events: none;
-    }
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-    .toast.ok  { background: var(--success); }
-    .toast.err { background: var(--danger); }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;overflow:hidden}
+    body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;color:var(--ink);background:var(--paper);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+    #root{height:100%;display:flex;flex-direction:column;overflow:hidden}
+    button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+    input,select,textarea{font:inherit;color:inherit}
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+    input[type=number]{-moz-appearance:textfield}
+    .field-input{width:100%;height:56px;padding:0 16px;border:1.5px solid var(--line);border-radius:var(--r);background:var(--card);font-size:17px;color:var(--ink);-webkit-appearance:none;appearance:none;transition:border-color .15s,box-shadow .15s}
+    .field-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+    .stepper{display:grid;height:64px;border:1.5px solid var(--line);border-radius:var(--r);background:var(--card);overflow:hidden}
+    .stepper button{display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:500;color:var(--ink-2);background:var(--paper-2);transition:background .12s}
+    .stepper button:active{background:var(--line)}
+    .stepper button:disabled{color:var(--line-2);background:var(--paper)}
+    .stepper input{width:100%;height:100%;border:0;background:var(--card);text-align:center;font-size:22px;font-weight:700;color:var(--ink);outline:none}
+    .stepper input:focus{background:#fffaf3}
+    .chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:var(--paper-2);color:var(--ink-2);font-size:12px;font-weight:600}
+    .chip-ok{background:var(--ok-soft);color:var(--ok)}
+    .chip-err{background:var(--err-soft);color:var(--err)}
+    .chip-accent{background:var(--accent-soft);color:var(--accent-ink)}
+    .m-card{background:var(--card);border-radius:var(--r-lg);border:1px solid var(--line);padding:16px}
+    .btn-primary{width:100%;height:60px;border-radius:var(--r);background:var(--ink);color:#fff;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;border:0;transition:transform .1s}
+    .btn-primary:active{transform:scale(.98)}
+    .btn-primary:disabled{background:var(--line-2);opacity:.7;cursor:not-allowed}
+    .btn-primary.is-ok{background:var(--ok)}
+    .btn-ghost{width:100%;height:56px;border-radius:var(--r);background:var(--paper-2);color:var(--ink);font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;border:0}
+    .btn-ghost:active{background:var(--line)}
+    .btn-ghost:disabled{opacity:.45;cursor:not-allowed}
+    .progress{height:6px;width:100%;background:var(--paper-2);border-radius:999px;overflow:hidden}
+    .progress>div{height:100%;background:var(--accent);border-radius:999px;transition:width .25s}
+    .app-bar{flex-shrink:0;background:rgba(251,247,242,.92);backdrop-filter:saturate(150%) blur(10px);-webkit-backdrop-filter:saturate(150%) blur(10px);border-bottom:1px solid var(--line);padding:14px 16px 12px}
+    .app-bar h1{font-size:18px;font-weight:700;letter-spacing:-.2px}
+    .bottom-bar{flex-shrink:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line)}
+    .h-section{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase}
+    .t-money,.t-num{font-variant-numeric:tabular-nums;font-feature-settings:'tnum'}
+    .screen{display:flex;flex-direction:column;height:100%;overflow:hidden}
+    .scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .toast{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:999px;font-size:15px;font-weight:600;z-index:200;white-space:nowrap;box-shadow:var(--shadow-md);animation:toastIn .2s ease-out}
+    .toast.ok{background:var(--ok)}.toast.err{background:var(--err)}
+    @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
   </style>
 </head>
 <body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
 
-<header class="app-header">
-  <h1>📋 Kiểm Kê Ca Làm Việc</h1>
-  <p id="load-status">Đang tải danh sách sản phẩm…</p>
-</header>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxGinGbDS1Rb-wag5WLo_JejHQ8q-5ddgEPkKnsbpjHs0ZZ4nqpHaaqvznMqgptAr_NNw/exec';
 
-<div class="container">
-
-  <!-- ══════════════════════════════════════
-       PHẦN 1 — THÔNG TIN CA
-  ══════════════════════════════════════ -->
-  <section class="card">
-    <h2>1. Thông Tin Ca</h2>
-
-    <div class="form-group">
-      <label>Ngày</label>
-      <input type="date" id="ngay">
-    </div>
-
-    <div class="form-group">
-      <label>Vị trí</label>
-      <select id="vi_tri">
-        <option value="Quận 6">Quận 6</option>
-        <option value="Bình Tân">Bình Tân</option>
-      </select>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label>Giờ bắt đầu</label>
-        <input type="time" id="gio_bat_dau">
-      </div>
-      <div class="form-group">
-        <label>Giờ kết thúc</label>
-        <input type="time" id="gio_ket_thuc">
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>Tên người kiểm</label>
-      <input type="text" id="ten_nguoi_kiem" placeholder="Nhập tên người kiểm kê…" autocomplete="name">
-    </div>
-  </section>
-
-  <!-- ══════════════════════════════════════
-       PHẦN 2 — BẢNG HÀNG
-  ══════════════════════════════════════ -->
-  <section class="card">
-    <h2>2. Bảng Hàng</h2>
-
-    <div class="table-wrap">
-      <table id="bang_hang">
-        <thead>
-          <tr>
-            <th class="col-name">Sản phẩm</th>
-            <th title="Tủ hấp 1 — mới ra lò">H1<br>mới</th>
-            <th title="Tủ hấp 1 — trong hộp">H1<br>hộp</th>
-            <th title="Tủ hấp 2 — mới ra lò">H2<br>mới</th>
-            <th title="Đầu hấp = H1mới + H1hộp + H2mới" class="calc-cell">Đầu<br>hấp</th>
-            <th title="Đầu ca kho">ĐC<br>kho</th>
-            <th title="Nhập thêm trong ca">Nhập<br>thêm</th>
-            <th title="Hư hỏng">Hư<br>hỏng</th>
-            <th title="Khuyến mãi / tặng">KM</th>
-            <th title="Xuất kho (chuyển đi)">X<br>kho</th>
-            <th title="Cuối ca kho">CC<br>kho</th>
-            <th title="Cuối ca hấp">CC<br>hấp</th>
-            <th title="Tiêu thụ = ĐC kho + Đầu hấp + Nhập − Hư − KM − X kho − CC kho − CC hấp" class="calc-cell">Tiêu<br>thụ</th>
-            <th title="Doanh thu = Tiêu thụ × Giá" class="calc-cell">Doanh<br>thu</th>
-          </tr>
-        </thead>
-        <tbody id="tbody_hang">
-          <tr><td colspan="14" style="padding:20px; color:var(--muted); text-align:center;">Đang tải…</td></tr>
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colspan="13" style="text-align:right; padding-right:10px; color:var(--muted); font-size:13px;">
-              Tổng doanh thu theo hàng:
-            </td>
-            <td class="calc-cell">
-              <span id="total_dt_hang" style="color:var(--success); font-size:14px;">0đ</span>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-
-    <div class="legend">
-      <strong>Chú thích cột:</strong>
-      H1/H2 = Tủ hấp 1/2 &nbsp;·&nbsp; ĐC = Đầu ca &nbsp;·&nbsp;
-      CC = Cuối ca &nbsp;·&nbsp; KM = Khuyến mãi &nbsp;·&nbsp; X kho = Xuất kho
-      <br><span class="badge-calc">Ô xám</span> = tự tính, không nhập
-    </div>
-  </section>
-
-  <!-- ══════════════════════════════════════
-       PHẦN 3 — TIỀN MẶT
-  ══════════════════════════════════════ -->
-  <section class="card">
-    <h2>3. Tiền Mặt</h2>
-
-    <div class="table-wrap">
-      <table class="cash-table">
-        <thead>
-          <tr>
-            <th>Mệnh giá</th>
-            <th>Đầu ca<br>(số tờ)</th>
-            <th class="calc-cell">Giá trị</th>
-            <th>Cuối ca<br>(số tờ)</th>
-            <th class="calc-cell">Giá trị</th>
-          </tr>
-        </thead>
-        <tbody id="tbody_tien"></tbody>
-        <tfoot>
-          <tr>
-            <td class="denom-label">Tổng cộng</td>
-            <td></td>
-            <td class="calc-cell"><span id="tong_dau_ca" style="color:var(--primary);">0đ</span></td>
-            <td></td>
-            <td class="calc-cell"><span id="tong_cuoi_ca" style="color:var(--primary);">0đ</span></td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-
-    <div style="margin-top:14px;">
-      <div class="form-group">
-        <label>Chi phí đã chi bằng tiền mặt trong ca</label>
-        <input type="number" id="chi_phi" min="0" value="0" inputmode="numeric" placeholder="0">
-      </div>
-      <div class="form-group">
-        <label>Doanh thu chuyển khoản / ngân hàng</label>
-        <input type="number" id="dt_ngan_hang" min="0" value="0" inputmode="numeric" placeholder="0">
-      </div>
-    </div>
-
-    <div class="summary-box">
-      <div class="sum-row">
-        <span class="lbl">Tiền cuối ca − Tiền đầu ca</span>
-        <span class="val" id="diff_tien">0đ</span>
-      </div>
-      <div class="sum-row">
-        <span class="lbl">+ Chi phí</span>
-        <span class="val" id="show_chi_phi">0đ</span>
-      </div>
-      <div class="sum-row">
-        <span class="lbl">+ Doanh thu ngân hàng</span>
-        <span class="val" id="show_dt_ngan_hang">0đ</span>
-      </div>
-      <div class="sum-row total">
-        <span class="lbl">Tổng DT theo tiền</span>
-        <span class="val" id="total_dt_tien">0đ</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════════════════════════════
-       PHẦN 4 — ĐỐI CHIẾU & GỬI CA
-  ══════════════════════════════════════ -->
-  <section class="card">
-    <h2>4. Đối Chiếu &amp; Gửi Ca</h2>
-
-    <div class="summary-box" style="margin-top:0;">
-      <div class="sum-row">
-        <span class="lbl">Doanh thu theo hàng</span>
-        <span class="val" id="result_dt_hang">0đ</span>
-      </div>
-      <div class="sum-row">
-        <span class="lbl">Doanh thu theo tiền</span>
-        <span class="val" id="result_dt_tien">0đ</span>
-      </div>
-    </div>
-
-    <div class="match-status neutral" id="match_status">
-      Nhập số liệu để kiểm tra đối chiếu
-    </div>
-
-    <div id="ly_do_wrap" style="display:none; margin-top:12px;">
-      <div class="form-group">
-        <label>Lý do doanh thu = 0 <span style="color:var(--danger);">*</span></label>
-        <textarea id="ly_do" placeholder="Ví dụ: ngày nghỉ lễ, tiệm đóng cửa…"></textarea>
-      </div>
-    </div>
-
-    <button id="btn_submit" class="blocked" disabled onclick="handleSubmit()">
-      Gửi Ca
-    </button>
-  </section>
-
-</div><!-- /container -->
-
-<div class="toast" id="toast"></div>
-
-<!-- ════════════════════════════════════════════
-     JAVASCRIPT
-════════════════════════════════════════════ -->
-<script>
-'use strict';
-
-// ─── CONFIG ──────────────────────────────────────────────────────────────
-// Dán URL Google Apps Script web app vào đây sau khi deploy
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwt1q7YWGPL2gM67QTkjO-9XGBW5CpKai1KHeu7sJZeydf89cbj26-V0nc6XL5IPV5YeQ/exec';
-
-const FALLBACK_SP = [
-  {ten: 'Bánh bao xúc xích phomai',       gia: 20000},
-  {ten: 'Bánh bao xá xíu phomai',          gia: 22000},
-  {ten: 'Bánh bao gà nấm phomai',          gia: 28000},
-  {ten: 'Bánh bao bò phomai',              gia: 25000},
-  {ten: 'Bánh bao thịt trứng cút',         gia: 20000},
-  {ten: 'Bánh bao hình thú',               gia: 15000},
-  {ten: 'Bánh bao kimsa',                  gia: 15000},
-  {ten: 'Bánh bao lava matcha',            gia: 15000},
-  {ten: 'Cơm nắm xúc xích sốt teriyaki',  gia: 15000},
-  {ten: 'Cơm nắm xúc xích phomai tan chảy', gia: 17000},
-  {ten: 'Yaourt',                          gia: 10000}
+const PRODUCTS = [
+  {ten:'Bánh bao xúc xích phomai',       short:'BB xúc xích phomai',  gia:20000, emoji:'🥟'},
+  {ten:'Bánh bao xá xíu phomai',         short:'BB xá xíu phomai',    gia:22000, emoji:'🥟'},
+  {ten:'Bánh bao gà nấm phomai',         short:'BB gà nấm phomai',    gia:28000, emoji:'🥟'},
+  {ten:'Bánh bao bò phomai',             short:'BB bò phomai',        gia:25000, emoji:'🥟'},
+  {ten:'Bánh bao thịt trứng cút',        short:'BB thịt trứng cút',   gia:20000, emoji:'🥟'},
+  {ten:'Bánh bao hình thú',              short:'BB hình thú',         gia:15000, emoji:'🐰'},
+  {ten:'Bánh bao kimsa',                 short:'BB kimsa',            gia:15000, emoji:'🥮'},
+  {ten:'Bánh bao lava matcha',           short:'BB lava matcha',      gia:15000, emoji:'🍵'},
+  {ten:'Cơm nắm xúc xích sốt teriyaki', short:'Cơm nắm teriyaki',    gia:15000, emoji:'🍙'},
+  {ten:'Cơm nắm xúc xích phomai',       short:'Cơm nắm phomai',      gia:17000, emoji:'🍙'},
+  {ten:'Yaourt',                          short:'Yaourt',              gia:10000, emoji:'🥛'},
 ];
 
-const DENOMS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
-const DENOM_LABELS = ['500.000đ', '200.000đ', '100.000đ', '50.000đ',
-                      '20.000đ', '10.000đ', '5.000đ', '2.000đ', '1.000đ'];
+const DENOMS = [500000,200000,100000,50000,20000,10000,5000,2000,1000];
 
-// ─── STATE ───────────────────────────────────────────────────────────────
-let products = [];
-let _state   = {tongDtHang: 0, tongDtTien: 0};
+const computePredicted = v =>
+  (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.nhap||0)-(v.xuat||0)-(v.hu||0)-(v.km||0);
 
-// ─── UTILS ───────────────────────────────────────────────────────────────
-const fmt = n => Math.round(n).toLocaleString('vi-VN') + 'đ';
+const fmt = n => Math.round(n).toLocaleString('vi-VN')+'đ';
 
-function numVal(id) {
-  const el = document.getElementById(id);
-  return el ? (parseFloat(el.value) || 0) : 0;
+const denomLabel = d => d>=1000000?(d/1000000)+'tr':d>=1000?(d/1000)+'k':String(d);
+
+const denomBg = d => ({
+  500000:'#3b6ba5',200000:'#a64f1f',100000:'#3a8e3f',50000:'#9c4a8a',
+  20000:'#3b7c8e',10000:'#a5704a',5000:'#2e6b95',2000:'#a06b3a',1000:'#7a6a55'
+})[d]||'#666';
+
+const INIT = () => ({
+  ngay: new Date().toISOString().slice(0,10),
+  vi_tri:'', ten:'',
+  products: PRODUCTS.map(()=>({})),
+  tien_dau:{}, tien_cuoi:{},
+  chi_phi:0, dt_nh:0,
+  nguoi_giao:'', nguoi_nhan:'', ghi_chu:''
+});
+
+const STORAGE_KEY = 'ca_v2';
+
+/* ─── STEPPER ─── */
+function Stepper({value, onChange, size='md'}) {
+  const set = n => onChange(Math.max(0,n));
+  const h  = size==='lg'?72:size==='sm'?48:60;
+  const fs = size==='lg'?26:size==='sm'?18:22;
+  const bs = size==='lg'?32:size==='sm'?22:28;
+  return (
+    <div className="stepper" style={{height:h, gridTemplateColumns:`${h}px 1fr ${h}px`}}>
+      <button onClick={()=>set(value-1)} disabled={value<=0} style={{fontSize:bs}}>−</button>
+      <input type="number" inputMode="numeric" value={value===0?'':value} placeholder="0"
+        onChange={e=>set(parseInt(e.target.value||'0',10)||0)}
+        onFocus={e=>e.target.select()} style={{fontSize:fs}}/>
+      <button onClick={()=>set(value+1)} style={{fontSize:bs}}>+</button>
+    </div>
+  );
 }
 
-function setText(id, text, cls) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = text;
-  if (cls !== undefined) el.className = cls;
+/* ─── ĐẦU CA ─── */
+function DauCa({data, setData, onBack, onDone}) {
+  const [idx, setIdx] = useState(0);
+  const p = PRODUCTS[idx];
+  const v = data.products[idx]||{};
+  const upd = (k,val) => {
+    const ps=[...data.products]; ps[idx]={...ps[idx],[k]:val}; setData({...data,products:ps});
+  };
+  const total = (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0);
+  const filled = data.products.filter(x=>x.dau_h1||x.dau_h2||x.dau_kho).length;
+  const isLast = idx===PRODUCTS.length-1;
+  return (
+    <div className="screen">
+      <div className="app-bar">
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'var(--paper-2)',fontSize:22}}>‹</button>
+          <div style={{flex:1}}>
+            <div className="h-section">Bước 1 · Đầu ca</div>
+            <h1 style={{fontSize:18,marginTop:2}}>Đếm tồn ban đầu</h1>
+          </div>
+          <div className="chip chip-accent">{idx+1}/{PRODUCTS.length}</div>
+        </div>
+        <div className="progress" style={{marginTop:12}}>
+          <div style={{width:`${((idx+1)/PRODUCTS.length)*100}%`}}/>
+        </div>
+      </div>
+      <div className="scroll-area" style={{padding:'14px 16px 24px'}}>
+        <div style={{background:'linear-gradient(135deg,var(--accent-soft),#fff5ee)',border:'1px solid var(--line)',borderRadius:'var(--r-lg)',padding:'18px 16px',marginBottom:18,display:'flex',alignItems:'center',gap:14}}>
+          <div style={{width:56,height:56,borderRadius:14,background:'#fff',border:'1px solid var(--line)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:30}}>{p.emoji}</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:17,fontWeight:700,lineHeight:1.2}}>{p.ten}</div>
+            <div style={{fontSize:12,color:'var(--accent-ink)',marginTop:4,fontWeight:600}}>{fmt(p.gia)}/cái</div>
+          </div>
+        </div>
+        <div className="h-section" style={{marginBottom:10}}>Đếm trong từng nơi</div>
+        {[
+          {k:'dau_h1', icon:'🔥', label:'Tủ hấp 1', sub:'mới + hộp'},
+          {k:'dau_h2', icon:'🔥', label:'Tủ hấp 2', sub:'mới + hộp'},
+          {k:'dau_kho',icon:'📥', label:'Trong kho', sub:'tồn lại'},
+        ].map(z=>(
+          <div key={z.k} className="m-card" style={{padding:14,marginBottom:10}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+              <span style={{fontSize:22}}>{z.icon}</span>
+              <div>
+                <div style={{fontSize:15,fontWeight:700}}>{z.label}</div>
+                <div style={{fontSize:12,color:'var(--muted)'}}>{z.sub}</div>
+              </div>
+            </div>
+            <Stepper value={v[z.k]||0} onChange={n=>upd(z.k,n)} size="lg"/>
+          </div>
+        ))}
+        <div className="m-card" style={{marginTop:6,padding:'14px 16px',background:total>0?'var(--ok-soft)':'var(--paper-2)',borderColor:total>0?'var(--ok)':'var(--line)',borderWidth:1.5}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span style={{fontSize:13,fontWeight:600,color:'var(--ink-2)'}}>∑ Tổng tồn đầu ca</span>
+            <span className="t-num" style={{fontSize:26,fontWeight:800,color:total>0?'var(--ok)':'var(--muted)'}}>{total}</span>
+          </div>
+        </div>
+      </div>
+      <div className="bottom-bar">
+        <div style={{display:'flex',gap:10}}>
+          <button className="btn-ghost" disabled={idx===0} onClick={()=>setIdx(Math.max(0,idx-1))} style={{flex:1}}>← Trước</button>
+          {isLast
+            ?<button className="btn-primary is-ok" onClick={onDone} style={{flex:1.6}}>✓ Đầu ca xong → Bán</button>
+            :<button className="btn-primary" onClick={()=>setIdx(idx+1)} style={{flex:1.6}}>Sản phẩm tiếp →</button>
+          }
+        </div>
+        <div style={{textAlign:'center',marginTop:8,fontSize:12,color:'var(--muted)'}}>Đã đếm {filled}/{PRODUCTS.length} sản phẩm</div>
+      </div>
+    </div>
+  );
 }
 
-function showToast(msg, type = '') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'toast show ' + type;
-  setTimeout(() => { el.className = 'toast'; }, 3500);
+/* ─── TRONG CA ─── */
+const ACTS = [
+  {k:'xuat',label:'Xuất',color:'var(--accent)',bg:'var(--accent-soft)',ink:'var(--accent-ink)'},
+  {k:'nhap',label:'Nhập',color:'var(--ok)',    bg:'var(--ok-soft)',    ink:'var(--ok)'},
+  {k:'hu',  label:'Hư',  color:'var(--err)',   bg:'var(--err-soft)',   ink:'var(--err)'},
+  {k:'km',  label:'KM',  color:'#a06b3a',      bg:'#fbf0e2',           ink:'#7a4f25'},
+];
+
+function TrongCa({data, setData, onBack, onDone}) {
+  const upd = (i,k,d) => {
+    const ps=[...data.products]; ps[i]={...ps[i],[k]:Math.max(0,(ps[i]?.[k]||0)+d)}; setData({...data,products:ps});
+  };
+  const totalRev  = data.products.reduce((s,v,i)=>s+(v.xuat||0)*PRODUCTS[i].gia,0);
+  const totalSold = data.products.reduce((s,v)=>s+(v.xuat||0),0);
+  return (
+    <div className="screen">
+      <div className="app-bar" style={{background:'var(--ink)',borderBottom:0,color:'#fff'}}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'rgba(255,255,255,.12)',color:'#fff',fontSize:22}}>‹</button>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>Bước 2 · Đang trong ca</div>
+            <h1 style={{color:'#fff',fontSize:18,marginTop:2}}>Theo dõi xuất / nhập / hư / KM</h1>
+          </div>
+        </div>
+        <div style={{marginTop:12,padding:'12px 14px',background:'rgba(255,255,255,.08)',borderRadius:'var(--r)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div>
+            <div style={{fontSize:11,opacity:.6,letterSpacing:1,textTransform:'uppercase',fontWeight:600}}>Đã bán hôm nay</div>
+            <div className="t-num" style={{fontSize:22,fontWeight:800,marginTop:2,color:'#fff'}}>
+              {totalSold} cái · <span className="t-money">{fmt(totalRev)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="scroll-area" style={{padding:'10px 10px 24px'}}>
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          {PRODUCTS.map((p,i)=>{
+            const v=data.products[i]||{};
+            const ton=computePredicted(v);
+            return (
+              <div key={i} className="m-card" style={{padding:'10px 10px 8px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                  <span style={{fontSize:22,lineHeight:1}}>{p.emoji}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:14,fontWeight:700,lineHeight:1.15}}>{p.short}</div>
+                    <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{fmt(p.gia)}</div>
+                  </div>
+                  <div style={{fontSize:11,fontWeight:600,padding:'4px 8px',borderRadius:8,
+                    color:ton<=2?'var(--err)':ton<=5?'var(--warn)':'var(--muted)',
+                    background:ton<=2?'var(--err-soft)':'var(--paper-2)'}}>
+                    Còn ~<span className="t-num" style={{fontSize:13,fontWeight:800}}>{ton}</span>
+                  </div>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
+                  {ACTS.map(a=>{
+                    const cnt=v[a.k]||0; const has=cnt>0;
+                    return (
+                      <div key={a.k} style={{position:'relative'}}>
+                        <button onClick={()=>upd(i,a.k,+1)} style={{
+                          width:'100%',height:64,borderRadius:12,cursor:'pointer',
+                          background:has?a.bg:'var(--paper-2)',
+                          border:'1.5px solid '+(has?a.color:'transparent'),
+                          display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'4px 2px'
+                        }}>
+                          <div className="t-num" style={{fontSize:22,fontWeight:800,lineHeight:1,color:has?a.ink:'var(--line-2)'}}>{cnt>0?cnt:'+'}</div>
+                          <div style={{fontSize:10,fontWeight:700,marginTop:4,textTransform:'uppercase',letterSpacing:.5,color:has?a.ink:'var(--muted)'}}>{a.label}</div>
+                        </button>
+                        {has&&<button onClick={e=>{e.stopPropagation();upd(i,a.k,-1)}} style={{
+                          position:'absolute',top:-4,right:-4,width:22,height:22,borderRadius:'50%',
+                          background:'#fff',border:'1.5px solid '+a.color,color:a.color,
+                          fontSize:16,fontWeight:700,lineHeight:1,padding:0,
+                          boxShadow:'0 1px 3px rgba(0,0,0,.12)',cursor:'pointer'
+                        }}>−</button>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{marginTop:14,padding:'12px 14px',background:'var(--paper-2)',borderRadius:'var(--r)',fontSize:12,color:'var(--ink-2)',lineHeight:1.55}}>
+          <strong>💡 Cách dùng:</strong> Tap nút để +1. Nút có số → góc trên hiện <strong>−</strong> để giảm.<br/>
+          <span style={{color:'var(--muted)',fontSize:11}}>Xuất = bán · Nhập = mẻ mới ra lò · Hư = rơi/mốc · KM = tặng</span>
+        </div>
+      </div>
+      <div className="bottom-bar">
+        <button className="btn-primary" onClick={onDone}>Cuối ca → Đối chiếu</button>
+      </div>
+    </div>
+  );
 }
 
-// ─── INIT ─────────────────────────────────────────────────────────────────
-async function init() {
-  setTodayDate();
-  await loadProducts();
-  buildProductTable();
-  buildCashTable();
-  attachListeners();
-  calculate();
-}
-
-function setTodayDate() {
-  const t = new Date();
-  const y = t.getFullYear();
-  const m = String(t.getMonth() + 1).padStart(2, '0');
-  const d = String(t.getDate()).padStart(2, '0');
-  document.getElementById('ngay').value = `${y}-${m}-${d}`;
-}
-
-async function loadProducts() {
-  const statusEl = document.getElementById('load-status');
-
-  if (!GAS_URL || GAS_URL === 'YOUR_GAS_WEBAPP_URL_HERE') {
-    products = FALLBACK_SP;
-    statusEl.textContent = 'Chế độ offline (chưa cấu hình GAS URL)';
-    return;
-  }
-
-  try {
-    const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 6000);
-    const res  = await fetch(GAS_URL, {signal: controller.signal});
-    clearTimeout(tid);
-    const data = await res.json();
-    if (data.success && Array.isArray(data.products) && data.products.length) {
-      products = data.products;
-      statusEl.textContent = `Đã kết nối · ${products.length} sản phẩm`;
-    } else {
-      throw new Error('Dữ liệu rỗng');
-    }
-  } catch (e) {
-    products = FALLBACK_SP;
-    statusEl.textContent = 'Không kết nối được server — dùng dữ liệu offline';
-  }
-}
-
-// ─── BUILD PRODUCT TABLE ──────────────────────────────────────────────────
-function buildProductTable() {
-  const tbody = document.getElementById('tbody_hang');
-  tbody.innerHTML = '';
-
-  products.forEach((p, i) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="col-name">
-        ${escHtml(p.ten)}
-        <div class="price-note">${fmt(p.gia)}/cái</div>
-      </td>
-      <td><input type="number" id="sp${i}_h1m"    min="0" value="0" inputmode="numeric"></td>
-      <td><input type="number" id="sp${i}_h1h"    min="0" value="0" inputmode="numeric"></td>
-      <td><input type="number" id="sp${i}_h2m"    min="0" value="0" inputmode="numeric"></td>
-      <td class="calc-cell"><span id="sp${i}_dau_hap">0</span></td>
-      <td><input type="number" id="sp${i}_dc_kho" min="0" value="0" inputmode="numeric"></td>
-      <td><input type="number" id="sp${i}_nhap"   min="0" value="0" inputmode="numeric"></td>
-      <td><input type="number" id="sp${i}_hu"     min="0" value="0" inputmode="numeric"></td>
-      <td><input type="number" id="sp${i}_km"     min="0" value="0" inputmode="numeric"></td>
-      <td><input type="number" id="sp${i}_xkho"   min="0" value="0" inputmode="numeric"></td>
-      <td><input type="number" id="sp${i}_cc_kho" min="0" value="0" inputmode="numeric"></td>
-      <td><input type="number" id="sp${i}_cc_hap" min="0" value="0" inputmode="numeric"></td>
-      <td class="calc-cell"><span id="sp${i}_tieu_thu">0</span></td>
-      <td class="calc-cell"><span id="sp${i}_dt">0đ</span></td>
-    `;
-    tbody.appendChild(tr);
+/* ─── CUỐI CA ─── */
+function CuoiCa({data, setData, onBack, onDone}) {
+  const upd = (i,val) => {
+    const ps=[...data.products]; ps[i]={...ps[i],cuoi_thuc:val}; setData({...data,products:ps});
+  };
+  const rows = PRODUCTS.map((p,i)=>{
+    const v=data.products[i]||{};
+    const predicted=computePredicted(v);
+    const actual=v.cuoi_thuc;
+    const checked=actual!==undefined&&actual!=='';
+    const diff=checked?(Number(actual)-predicted):0;
+    return {p,i,v,predicted,actual,checked,diff};
   });
+  const totalRev  = data.products.reduce((s,v,i)=>s+(v.xuat||0)*PRODUCTS[i].gia,0);
+  const lechCount = rows.filter(r=>r.checked&&r.diff!==0).length;
+  const allChecked= rows.every(r=>r.checked);
+  return (
+    <div className="screen">
+      <div className="app-bar">
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'var(--paper-2)',fontSize:22}}>‹</button>
+          <div style={{flex:1}}>
+            <div className="h-section">Bước 3 · Cuối ca</div>
+            <h1 style={{fontSize:18,marginTop:2}}>Đối chiếu tồn cuối</h1>
+          </div>
+        </div>
+        <div style={{marginTop:12,padding:'10px 12px',background:'var(--paper-2)',borderRadius:'var(--r)',fontSize:12,color:'var(--ink-2)',lineHeight:1.45}}>
+          Đếm tổng tồn thực tế (tủ hấp + kho). App tự so với dự kiến.
+        </div>
+      </div>
+      <div className="scroll-area" style={{padding:'12px 14px 24px'}}>
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          {rows.map(r=>{
+            const ok=r.checked&&r.diff===0; const lech=r.checked&&r.diff!==0;
+            return (
+              <div key={r.i} className="m-card" style={{
+                padding:12,
+                borderColor:ok?'var(--ok)':lech?'var(--err)':'var(--line)',
+                background:ok?'var(--ok-soft)':lech?'var(--err-soft)':'var(--card)',
+                borderWidth:r.checked?1.5:1
+              }}>
+                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                  <span style={{fontSize:22}}>{r.p.emoji}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:700,lineHeight:1.2}}>{r.p.short}</div>
+                    <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>Bán {r.v.xuat||0} · {fmt((r.v.xuat||0)*r.p.gia)}</div>
+                  </div>
+                  {ok&&<span className="chip chip-ok">✓</span>}
+                  {lech&&<span className="chip chip-err">{r.diff>0?`+${r.diff}`:r.diff}</span>}
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:10,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700,marginBottom:4}}>Dự kiến</div>
+                    <div className="t-num" style={{fontSize:20,fontWeight:800,color:'var(--ink-2)'}}>{r.predicted}</div>
+                  </div>
+                  <div style={{flex:1.4}}>
+                    <div style={{fontSize:10,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700,marginBottom:4}}>Đếm thực tế</div>
+                    <input className="field-input" type="number" inputMode="numeric"
+                      value={r.actual===undefined?'':r.actual} placeholder="—"
+                      onChange={e=>upd(r.i,e.target.value===''?undefined:(parseInt(e.target.value)||0))}
+                      onFocus={e=>e.target.select()}
+                      style={{height:48,fontSize:18,fontWeight:700,textAlign:'center'}}/>
+                  </div>
+                </div>
+                {lech&&<div style={{marginTop:8,fontSize:12,color:'var(--err)',fontWeight:600}}>⚠ Lệch {Math.abs(r.diff)} cái — kiểm tra lại</div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="bottom-bar">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,padding:'0 4px'}}>
+          <div>
+            <div style={{fontSize:10,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700}}>Doanh thu</div>
+            <div className="t-money" style={{fontSize:16,fontWeight:800}}>{fmt(totalRev)}</div>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontSize:10,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700}}>Đối chiếu</div>
+            <div style={{fontSize:14,fontWeight:700,color:lechCount>0?'var(--err)':allChecked?'var(--ok)':'var(--muted)'}}>
+              {!allChecked?`${rows.filter(r=>r.checked).length}/${rows.length} đếm`:lechCount===0?'✓ Khớp tất cả':`⚠ Lệch ${lechCount}`}
+            </div>
+          </div>
+        </div>
+        <button className={`btn-primary ${allChecked&&lechCount===0?'is-ok':''}`} disabled={!allChecked} onClick={onDone}>
+          {!allChecked?'Đếm hết để tiếp tục':lechCount===0?'✓ Khớp — sang đếm tiền':`⚠ ${lechCount} lệch — vẫn tiếp tục`}
+        </button>
+      </div>
+    </div>
+  );
 }
 
-// ─── BUILD CASH TABLE ─────────────────────────────────────────────────────
-function buildCashTable() {
-  const tbody = document.getElementById('tbody_tien');
-  tbody.innerHTML = '';
-
-  DENOMS.forEach((d, i) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="denom-label">${DENOM_LABELS[i]}</td>
-      <td><input type="number" id="dc_${d}" min="0" value="0" inputmode="numeric"></td>
-      <td class="calc-cell"><span id="dc_val_${d}">0đ</span></td>
-      <td><input type="number" id="cc_${d}" min="0" value="0" inputmode="numeric"></td>
-      <td class="calc-cell"><span id="cc_val_${d}">0đ</span></td>
-    `;
-    tbody.appendChild(tr);
-  });
+/* ─── TIỀN ─── */
+function Tien({mode, data, setData, onBack, onDone}) {
+  const key    = mode==='dau'?'tien_dau':'tien_cuoi';
+  const counts = data[key]||{};
+  const updD   = (d,delta) => setData({...data,[key]:{...counts,[d]:Math.max(0,(counts[d]||0)+delta)}});
+  const setVal = (d,val)   => setData({...data,[key]:{...counts,[d]:Math.max(0,val)}});
+  const total    = DENOMS.reduce((s,d)=>s+(counts[d]||0)*d,0);
+  const totalRev = data.products.reduce((s,v,i)=>s+(v.xuat||0)*PRODUCTS[i].gia,0);
+  const dauTotal = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
+  const chiPhi   = data.chi_phi||0;
+  const dtNH     = data.dt_nh||0;
+  const expected = dauTotal+(totalRev-dtNH)-chiPhi;
+  const diff     = total-expected;
+  const isCuoi   = mode==='cuoi';
+  return (
+    <div className="screen">
+      <div className="app-bar">
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'var(--paper-2)',fontSize:22}}>‹</button>
+          <div style={{flex:1}}>
+            <div className="h-section">{isCuoi?'Cuối ca':'Đầu ca'} · Tiền mặt</div>
+            <h1 style={{fontSize:18,marginTop:2}}>{isCuoi?'Đếm tiền cuối ca':'Đếm tiền đầu ca'}</h1>
+          </div>
+        </div>
+        {!isCuoi&&<div style={{marginTop:10,padding:'10px 12px',background:'var(--paper-2)',borderRadius:'var(--r)',fontSize:12,color:'var(--ink-2)',lineHeight:1.45}}>Đếm tiền có sẵn trong két lúc nhận ca.</div>}
+      </div>
+      <div className="scroll-area" style={{padding:'10px 12px 24px'}}>
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          {DENOMS.map(d=>{
+            const n=counts[d]||0; const has=n>0;
+            return (
+              <div key={d} className="m-card" style={{padding:10,display:'flex',alignItems:'center',gap:10,borderColor:has?'var(--accent)':'var(--line)',borderWidth:has?1.5:1}}>
+                <div style={{width:78,height:44,borderRadius:8,background:denomBg(d),display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:800,fontSize:13,flexShrink:0,textShadow:'0 1px 1px rgba(0,0,0,.25)'}} className="t-num">{denomLabel(d)}</div>
+                <div style={{flex:1}}><div className="t-money" style={{fontSize:13,color:'var(--muted)',fontWeight:600}}>{has?fmt(n*d):'—'}</div></div>
+                <button onClick={()=>updD(d,-1)} disabled={n===0} style={{width:38,height:38,borderRadius:10,background:'var(--paper-2)',fontSize:22,color:n===0?'var(--line-2)':'var(--ink-2)'}}>−</button>
+                <input type="number" inputMode="numeric" value={n===0?'':n} placeholder="0"
+                  onChange={e=>setVal(d,parseInt(e.target.value||'0',10)||0)}
+                  onFocus={e=>e.target.select()}
+                  className="t-num" style={{width:52,height:38,borderRadius:10,border:'1px solid var(--line)',background:'#fff',textAlign:'center',fontSize:17,fontWeight:700}}/>
+                <button onClick={()=>updD(d,+1)} style={{width:44,height:38,borderRadius:10,background:'var(--accent)',color:'#fff',fontSize:22,fontWeight:600,lineHeight:1}}>+</button>
+              </div>
+            );
+          })}
+        </div>
+        {isCuoi&&(
+          <div className="m-card" style={{padding:14,marginTop:12}}>
+            <div className="h-section" style={{marginBottom:10}}>Trừ ra khỏi két</div>
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              <div>
+                <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>💸 Chi phí trong ca</label>
+                <input type="number" inputMode="numeric" value={chiPhi===0?'':chiPhi} placeholder="0"
+                  onChange={e=>setData({...data,chi_phi:parseInt(e.target.value||'0',10)||0})}
+                  onFocus={e=>e.target.select()} className="field-input t-num" style={{height:48,fontSize:17,fontWeight:700,textAlign:'right'}}/>
+              </div>
+              <div>
+                <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>💳 Doanh thu chuyển khoản / Momo / NH</label>
+                <input type="number" inputMode="numeric" value={dtNH===0?'':dtNH} placeholder="0"
+                  onChange={e=>setData({...data,dt_nh:parseInt(e.target.value||'0',10)||0})}
+                  onFocus={e=>e.target.select()} className="field-input t-num" style={{height:48,fontSize:17,fontWeight:700,textAlign:'right'}}/>
+              </div>
+            </div>
+          </div>
+        )}
+        <div className="m-card" style={{marginTop:12,padding:14,
+          background:isCuoi?(diff===0?'var(--ok-soft)':'var(--err-soft)'):'var(--accent-soft)',
+          borderColor:isCuoi?(diff===0?'var(--ok)':'var(--err)'):'var(--accent)',borderWidth:1.5}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:isCuoi?8:0}}>
+            <span style={{fontSize:13,fontWeight:700,color:'var(--ink-2)'}}>∑ Tổng tiền đếm được</span>
+            <span className="t-money" style={{fontSize:22,fontWeight:800,color:'var(--ink)'}}>{fmt(total)}</span>
+          </div>
+          {isCuoi&&(
+            <div style={{paddingTop:8,borderTop:'1px dashed rgba(0,0,0,.1)',fontSize:12,lineHeight:1.6}}>
+              <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--muted)'}}>Đầu ca</span><span className="t-money">{fmt(dauTotal)}</span></div>
+              <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--muted)'}}>+ Doanh thu hàng</span><span className="t-money">{fmt(totalRev)}</span></div>
+              {dtNH>0&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--muted)'}}>− Chuyển khoản / NH</span><span className="t-money">−{fmt(dtNH)}</span></div>}
+              {chiPhi>0&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--muted)'}}>− Chi phí</span><span className="t-money">−{fmt(chiPhi)}</span></div>}
+              <div style={{display:'flex',justifyContent:'space-between',marginTop:6,paddingTop:6,borderTop:'1px solid rgba(0,0,0,.08)',fontWeight:700}}>
+                <span>= Dự kiến</span><span className="t-money">{fmt(expected)}</span>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',marginTop:8,padding:'8px 10px',borderRadius:8,fontWeight:700,fontSize:14,
+                background:diff===0?'rgba(35,134,54,.12)':'rgba(206,55,44,.12)'}}>
+                <span style={{color:diff===0?'var(--ok)':'var(--err)'}}>{diff===0?'✓ Khớp với dự kiến':diff>0?'⚠ Thừa':'⚠ Thiếu'}</span>
+                <span className="t-money" style={{color:diff===0?'var(--ok)':'var(--err)'}}>{diff===0?'0 ₫':(diff>0?'+':'')+fmt(diff)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="bottom-bar">
+        <button className={`btn-primary ${isCuoi&&diff===0?'is-ok':''}`} onClick={onDone} disabled={total===0}>
+          {!isCuoi?'✓ Tiền đầu ca xong':diff===0?'✓ Khớp — sang bàn giao':'⚠ Lệch — vẫn bàn giao'}
+        </button>
+      </div>
+    </div>
+  );
 }
 
-// ─── LISTENERS ────────────────────────────────────────────────────────────
-function attachListeners() {
-  document.addEventListener('input', e => {
-    if (e.target.matches('input, textarea')) calculate();
-  });
+/* ─── GIAO CA ─── */
+function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
+  const upd       = (k,v) => setData({...data,[k]:v});
+  const totalCuoi = DENOMS.reduce((s,d)=>s+(data.tien_cuoi?.[d]||0)*d,0);
+  const totalDau  = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
+  const totalRev  = data.products.reduce((s,v,i)=>s+(v.xuat||0)*PRODUCTS[i].gia,0);
+  const lechCount = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''&&(Number(v.cuoi_thuc)-computePredicted(v))!==0).length;
+  const expected  = totalDau+(totalRev-(data.dt_nh||0))-(data.chi_phi||0);
+  const tienDiff  = totalCuoi-expected;
+  const canSubmit = data.nguoi_giao&&data.nguoi_nhan&&!submitting;
+  return (
+    <div className="screen">
+      <div className="app-bar">
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'var(--paper-2)',fontSize:22}}>‹</button>
+          <div style={{flex:1}}>
+            <div className="h-section">Bước cuối · Bàn giao</div>
+            <h1 style={{fontSize:18,marginTop:2}}>Bàn giao ca</h1>
+          </div>
+        </div>
+      </div>
+      <div className="scroll-area" style={{padding:'14px 14px 24px'}}>
+        <div className="m-card" style={{padding:14,marginBottom:14}}>
+          <div className="h-section" style={{marginBottom:10}}>Tóm tắt ca {data.ten||'—'} · {data.vi_tri||'—'}</div>
+          <div style={{display:'flex',flexDirection:'column',gap:6,fontSize:13}}>
+            {[['Doanh thu hàng',fmt(totalRev)],['Chuyển khoản / NH',fmt(data.dt_nh||0)],['Chi phí',fmt(data.chi_phi||0)],['Tiền đầu ca',fmt(totalDau)],['Tiền cuối ca',fmt(totalCuoi)]].map(([l,v])=>(
+              <div key={l} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
+                <span style={{color:'var(--muted)',fontSize:12}}>{l}</span>
+                <span className="t-money" style={{fontWeight:600}}>{v}</span>
+              </div>
+            ))}
+            <div style={{padding:'8px 10px',borderRadius:8,marginTop:4,display:'flex',justifyContent:'space-between',fontWeight:700,fontSize:13,
+              background:tienDiff===0?'var(--ok-soft)':'var(--err-soft)'}}>
+              <span style={{color:tienDiff===0?'var(--ok)':'var(--err)'}}>{tienDiff===0?'✓ Tiền khớp':tienDiff>0?'⚠ Thừa':'⚠ Thiếu'}</span>
+              <span className="t-money" style={{color:tienDiff===0?'var(--ok)':'var(--err)'}}>{tienDiff===0?'0 ₫':(tienDiff>0?'+':'')+fmt(tienDiff)}</span>
+            </div>
+            {lechCount>0&&<div style={{padding:'8px 10px',borderRadius:8,background:'var(--err-soft)',color:'var(--err)',fontWeight:700,fontSize:13}}>⚠ {lechCount} sản phẩm bị lệch tồn</div>}
+          </div>
+        </div>
+        <div className="m-card" style={{padding:14,marginBottom:14}}>
+          <div className="h-section" style={{marginBottom:10}}>Hai bên xác nhận</div>
+          <div style={{display:'flex',flexDirection:'column',gap:12}}>
+            <div>
+              <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>✍️ Người giao ca (bạn)</label>
+              <input className="field-input" placeholder="Tên người giao…" value={data.nguoi_giao||''} onChange={e=>upd('nguoi_giao',e.target.value)} style={{height:48,fontSize:16}}/>
+            </div>
+            <div>
+              <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>🤝 Người nhận ca</label>
+              <input className="field-input" placeholder="Tên người nhận…" value={data.nguoi_nhan||''} onChange={e=>upd('nguoi_nhan',e.target.value)} style={{height:48,fontSize:16}}/>
+            </div>
+            <div>
+              <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>📝 Ghi chú (nếu có lệch)</label>
+              <textarea className="field-input" placeholder="Lý do lệch tiền/hàng…" value={data.ghi_chu||''} onChange={e=>upd('ghi_chu',e.target.value)} rows={3} style={{height:'auto',fontSize:14,padding:10,resize:'none'}}/>
+            </div>
+          </div>
+        </div>
+        <div style={{padding:14,background:'var(--paper-2)',borderRadius:'var(--r)',fontSize:12,color:'var(--ink-2)',lineHeight:1.55}}>
+          <strong>Quy trình bàn giao:</strong> Cùng ca sau đối chiếu → cả hai ký → số "Cuối ca" tự thành "Đầu ca" ca tiếp theo.
+        </div>
+      </div>
+      <div className="bottom-bar">
+        <button className="btn-primary is-ok" disabled={!canSubmit} onClick={onSubmit}>
+          {submitting?'⏳ Đang gửi…':canSubmit?'✓ Gửi báo cáo ca':'Cần đủ 2 chữ ký'}
+        </button>
+      </div>
+    </div>
+  );
 }
 
-// ─── CALCULATE (real-time) ────────────────────────────────────────────────
-function calculate() {
-  let tongDtHang = 0;
-
-  // Per-product calculations
-  products.forEach((p, i) => {
-    const h1m    = numVal(`sp${i}_h1m`);
-    const h1h    = numVal(`sp${i}_h1h`);
-    const h2m    = numVal(`sp${i}_h2m`);
-    const dauHap = h1m + h1h + h2m;
-
-    const dcKho  = numVal(`sp${i}_dc_kho`);
-    const nhap   = numVal(`sp${i}_nhap`);
-    const hu     = numVal(`sp${i}_hu`);
-    const km     = numVal(`sp${i}_km`);
-    const xKho   = numVal(`sp${i}_xkho`);
-    const ccKho  = numVal(`sp${i}_cc_kho`);
-    const ccHap  = numVal(`sp${i}_cc_hap`);
-
-    // Tiêu thụ = ĐC kho + Đầu hấp + Nhập − Hư − KM − Xuất kho − CC kho − CC hấp
-    const tieuThu = dcKho + dauHap + nhap - hu - km - xKho - ccKho - ccHap;
-    const dt      = tieuThu * p.gia;
-
-    document.getElementById(`sp${i}_dau_hap`).textContent = dauHap;
-
-    const ttEl = document.getElementById(`sp${i}_tieu_thu`);
-    ttEl.textContent = tieuThu;
-    ttEl.className   = tieuThu < 0 ? 'negative' : '';
-
-    document.getElementById(`sp${i}_dt`).textContent = fmt(dt);
-    tongDtHang += dt;
-  });
-
-  setText('total_dt_hang', fmt(tongDtHang));
-  setText('result_dt_hang', fmt(tongDtHang));
-
-  // Cash totals
-  let tongDauCa = 0, tongCuoiCa = 0;
-  DENOMS.forEach(d => {
-    const dcTo = numVal(`dc_${d}`);
-    const ccTo = numVal(`cc_${d}`);
-    tongDauCa  += dcTo * d;
-    tongCuoiCa += ccTo * d;
-    setText(`dc_val_${d}`, fmt(dcTo * d));
-    setText(`cc_val_${d}`, fmt(ccTo * d));
-  });
-
-  setText('tong_dau_ca',  fmt(tongDauCa));
-  setText('tong_cuoi_ca', fmt(tongCuoiCa));
-
-  const chiPhi      = numVal('chi_phi');
-  const dtNganHang  = numVal('dt_ngan_hang');
-  const diffTien    = tongCuoiCa - tongDauCa;
-
-  // Tổng DT theo tiền = (Cuối ca − Đầu ca) + Chi phí + DT ngân hàng
-  const tongDtTien = diffTien + chiPhi + dtNganHang;
-
-  setText('diff_tien',          fmt(diffTien));
-  setText('show_chi_phi',       fmt(chiPhi));
-  setText('show_dt_ngan_hang',  fmt(dtNganHang));
-  setText('total_dt_tien',      fmt(tongDtTien));
-  setText('result_dt_tien',     fmt(tongDtTien));
-
-  _state = {tongDtHang, tongDtTien, tongDauCa, tongCuoiCa};
-
-  updateMatchStatus(tongDtHang, tongDtTien);
+/* ─── HUB ─── */
+function Hub({data, setData, setScreen}) {
+  const dauDone    = data.products.every(v=>v.dau_h1||v.dau_h2||v.dau_kho);
+  const trongActive= data.products.some(v=>(v.xuat||0)>0);
+  const cuoiDone   = data.products.every(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='');
+  const totalRev   = data.products.reduce((s,v,i)=>s+(v.xuat||0)*PRODUCTS[i].gia,0);
+  const lechCount  = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''&&(Number(v.cuoi_thuc)-computePredicted(v))!==0).length;
+  const totalSold  = data.products.reduce((s,v)=>s+(v.xuat||0),0);
+  const tiles = [
+    {key:'dau',  step:1,title:'Đầu ca',  icon:'📥',done:dauDone,enabled:true,
+     sub:dauDone?'Đã đếm xong':'Đếm tồn 3 nơi (1 lần)'},
+    {key:'trong',step:2,title:'Trong ca',icon:'🛒',active:trongActive,done:false,enabled:dauDone,
+     sub:trongActive?`Đã bán ${totalSold} cái · ${fmt(totalRev)}`:'Bấm + mỗi lần bán'},
+    {key:'cuoi', step:3,title:'Cuối ca', icon:'🔍',done:cuoiDone&&lechCount===0,warn:cuoiDone&&lechCount>0,enabled:trongActive,
+     sub:cuoiDone?(lechCount===0?'✓ Khớp tất cả':`⚠ Lệch ${lechCount}`):'Đếm thực tế → đối chiếu'},
+  ];
+  return (
+    <div className="screen">
+      <div className="app-bar" style={{background:'var(--ink)',borderBottom:0,color:'#fff'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div>
+            <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>{data.ngay} · {data.vi_tri||'Chưa mở ca'}</div>
+            <h1 style={{color:'#fff',fontSize:19,marginTop:2}}>{data.ten?`Ca của ${data.ten}`:'Kiểm kê ca'}</h1>
+          </div>
+        </div>
+        <div style={{marginTop:14,padding:'12px 14px',background:'rgba(255,255,255,.08)',borderRadius:'var(--r)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div>
+            <div style={{fontSize:11,opacity:.6,letterSpacing:1,textTransform:'uppercase',fontWeight:600}}>Doanh thu hàng</div>
+            <div className="t-money" style={{fontSize:24,fontWeight:800,marginTop:2,color:'#fff'}}>{fmt(totalRev)}</div>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontSize:11,opacity:.6,letterSpacing:1,textTransform:'uppercase',fontWeight:600}}>Đã bán</div>
+            <div className="t-num" style={{fontSize:20,fontWeight:700,marginTop:2,color:'#fff'}}>{totalSold} cái</div>
+          </div>
+        </div>
+      </div>
+      <div className="scroll-area" style={{padding:'16px 14px 100px'}}>
+        {!data.ten&&(
+          <div className="m-card" style={{padding:14,marginBottom:14}}>
+            <div className="h-section" style={{marginBottom:10}}>Mở ca</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
+              {['Quận 6','Bình Tân'].map(loc=>(
+                <button key={loc} onClick={()=>setData({...data,vi_tri:loc})} style={{height:52,borderRadius:'var(--r)',fontWeight:600,border:'1.5px solid '+(data.vi_tri===loc?'var(--accent)':'var(--line)'),background:data.vi_tri===loc?'var(--accent-soft)':'#fff'}}>📍 {loc}</button>
+              ))}
+            </div>
+            <input className="field-input" placeholder="Tên của bạn…" value={data.ten} onChange={e=>setData({...data,ten:e.target.value})}/>
+          </div>
+        )}
+        {data.ten&&(
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,padding:'10px 12px',background:'var(--paper-2)',borderRadius:'var(--r)'}}>
+            <span style={{fontSize:14,color:'var(--muted)'}}>📍 {data.vi_tri} · {data.ten}</span>
+            <button onClick={()=>setData({...data,ten:'',vi_tri:''})} style={{marginLeft:'auto',fontSize:12,color:'var(--accent)',fontWeight:600}}>Đổi</button>
+          </div>
+        )}
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {tiles.map(t=>(
+            <button key={t.key} onClick={()=>t.enabled&&setScreen(t.key)} disabled={!t.enabled} style={{
+              display:'flex',alignItems:'center',gap:14,padding:'16px',background:'var(--card)',borderRadius:'var(--r-lg)',textAlign:'left',
+              border:'1px solid '+(t.warn?'var(--err)':t.done?'var(--ok)':'var(--line)'),
+              borderWidth:(t.done||t.warn)?1.5:1,opacity:t.enabled?1:.5,cursor:t.enabled?'pointer':'not-allowed'
+            }}>
+              <div style={{width:56,height:56,borderRadius:16,fontSize:26,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',
+                background:t.warn?'var(--err-soft)':t.done?'var(--ok-soft)':t.active?'var(--accent-soft)':'var(--paper-2)'}}>{t.icon}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:2}}>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--muted)',letterSpacing:1}}>BƯỚC {t.step}</span>
+                  {t.done&&<span className="chip chip-ok" style={{padding:'1px 8px',fontSize:10}}>✓ XONG</span>}
+                  {t.active&&!t.done&&<span className="chip chip-accent" style={{padding:'1px 8px',fontSize:10}}>● ĐANG</span>}
+                  {t.warn&&<span className="chip chip-err" style={{padding:'1px 8px',fontSize:10}}>⚠ LỆCH</span>}
+                </div>
+                <div style={{fontSize:17,fontWeight:700,lineHeight:1.2}}>{t.title}</div>
+                <div style={{fontSize:13,color:'var(--muted)',marginTop:3}}>{t.sub}</div>
+              </div>
+              <span style={{color:t.enabled?'var(--muted)':'var(--line-2)',fontSize:22}}>›</span>
+            </button>
+          ))}
+        </div>
+        <div style={{marginTop:14}}>
+          <button disabled={!cuoiDone} className="btn-ghost" style={{height:60}} onClick={()=>cuoiDone&&setScreen('tien-dau')}>
+            💵 Đếm tiền &amp; bàn giao ca →
+          </button>
+        </div>
+        <div style={{marginTop:18,padding:14,background:'var(--paper-2)',borderRadius:'var(--r)',fontSize:12,color:'var(--ink-2)',lineHeight:1.55}}>
+          <strong>Quy trình:</strong> Đầu ca đếm 1 lần → Cả ca tap "+" mỗi lần bán → Cuối ca đếm thực tế, app báo lệch.
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function updateMatchStatus(hang, tien) {
-  const statusEl  = document.getElementById('match_status');
-  const btn       = document.getElementById('btn_submit');
-  const lyDoWrap  = document.getElementById('ly_do_wrap');
-
-  // Cả hai đều 0 và chưa nhập gì
-  if (hang === 0 && tien === 0) {
-    statusEl.className = 'match-status neutral';
-    statusEl.textContent = 'Nhập số liệu để kiểm tra đối chiếu';
-    btn.className = 'blocked'; btn.disabled = true;
-    lyDoWrap.style.display = 'none';
-    return;
-  }
-
-  // DT theo hàng = 0, cần nhập lý do
-  if (hang === 0 && tien === 0) {
-    lyDoWrap.style.display = 'block';
-    statusEl.className = 'match-status warn';
-    statusEl.textContent = '⚠ Tổng DT = 0. Nhập lý do bên dưới rồi gửi ca.';
-    btn.className = 'warn'; btn.disabled = false;
-    return;
-  }
-
-  lyDoWrap.style.display = 'none';
-
-  const chenh = Math.round(hang - tien); // làm tròn tránh float error
-
-  if (chenh === 0) {
-    statusEl.className = 'match-status match';
-    statusEl.textContent = '✓ Khớp! Doanh thu đối chiếu chính xác. Có thể gửi ca.';
-    btn.className = 'ready'; btn.disabled = false;
-    btn.textContent = 'Gửi Ca ✓';
-  } else if (hang === 0) {
-    // Hàng = 0 nhưng tiền ≠ 0 → vẫn yêu cầu lý do + cho submit
-    lyDoWrap.style.display = 'block';
-    statusEl.className = 'match-status warn';
-    statusEl.textContent = `⚠ DT theo hàng = 0. Kiểm tra lại hoặc nhập lý do.`;
-    btn.className = 'warn'; btn.disabled = false;
-    btn.textContent = 'Gửi Ca (cần lý do)';
-  } else {
-    const abs = Math.abs(chenh);
-    const dir = chenh > 0 ? 'Hàng cao hơn Tiền' : 'Tiền cao hơn Hàng';
-    statusEl.className = 'match-status mismatch';
-    statusEl.textContent = `✗ Chưa khớp — chênh ${fmt(abs)} (${dir}). Kiểm tra lại.`;
-    btn.className = 'blocked'; btn.disabled = true;
-    btn.textContent = 'Gửi Ca';
-  }
-}
-
-// ─── SUBMIT ───────────────────────────────────────────────────────────────
-async function handleSubmit() {
-  // Validate thông tin ca
-  const ngay   = document.getElementById('ngay').value;
-  const viTri  = document.getElementById('vi_tri').value;
-  const gioBD  = document.getElementById('gio_bat_dau').value;
-  const gioKT  = document.getElementById('gio_ket_thuc').value;
-  const ten    = document.getElementById('ten_nguoi_kiem').value.trim();
-
-  if (!ngay || !viTri || !gioBD || !gioKT || !ten) {
-    showToast('Vui lòng điền đầy đủ thông tin ca!', 'err');
-    document.querySelector('.card').scrollIntoView({behavior: 'smooth'});
-    return;
-  }
-
-  // Validate lý do nếu DT = 0
-  const lyDo = document.getElementById('ly_do').value.trim();
-  if (_state.tongDtHang === 0 && !lyDo) {
-    showToast('DT = 0 — vui lòng nhập lý do!', 'err');
-    document.getElementById('ly_do').focus();
-    return;
-  }
-
-  if (!GAS_URL || GAS_URL === 'YOUR_GAS_WEBAPP_URL_HERE') {
-    showToast('Chưa cấu hình GAS URL trong file index.html!', 'err');
-    return;
-  }
-
-  // Build payload
-  const sanPham = products.map((p, i) => {
-    const h1m    = numVal(`sp${i}_h1m`);
-    const h1h    = numVal(`sp${i}_h1h`);
-    const h2m    = numVal(`sp${i}_h2m`);
-    const dauHap = h1m + h1h + h2m;
-    const dcKho  = numVal(`sp${i}_dc_kho`);
-    const nhap   = numVal(`sp${i}_nhap`);
-    const hu     = numVal(`sp${i}_hu`);
-    const km     = numVal(`sp${i}_km`);
-    const xKho   = numVal(`sp${i}_xkho`);
-    const ccKho  = numVal(`sp${i}_cc_kho`);
-    const ccHap  = numVal(`sp${i}_cc_hap`);
-    const tieuThu = dcKho + dauHap + nhap - hu - km - xKho - ccKho - ccHap;
-    return {
-      ten: p.ten, gia: p.gia,
-      tu_hap_1_moi: h1m, tu_hap_1_hop: h1h, tu_hap_2_moi: h2m,
-      dau_hap:    dauHap,
-      dau_ca_kho: dcKho, nhap_them: nhap, hu_hong: hu,
-      khuyen_mai: km,    xuat_kho: xKho,
-      cuoi_ca_kho: ccKho, cuoi_ca_hap: ccHap,
-      tieu_thu:   tieuThu,
-      doanh_thu:  tieuThu * p.gia
-    };
+/* ─── APP ─── */
+function App() {
+  const [data, setDataRaw] = useState(()=>{
+    try { const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):INIT(); } catch { return INIT(); }
   });
+  const [screen,     setScreen]    = useState('hub');
+  const [toast,      setToast]     = useState(null);
+  const [submitting, setSubmitting]= useState(false);
 
-  const tienDauCa = {}, tienCuoiCa = {};
-  DENOMS.forEach(d => {
-    tienDauCa[d]  = numVal(`dc_${d}`);
-    tienCuoiCa[d] = numVal(`cc_${d}`);
-  });
+  const setData = d => {
+    setDataRaw(d);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch {}
+  };
+  const showToast = (msg,type='ok') => { setToast({msg,type}); setTimeout(()=>setToast(null),3000); };
+  const nav = s => setScreen(s);
 
-  const payload = {
-    ngay, vi_tri: viTri,
-    gio_bat_dau: gioBD, gio_ket_thuc: gioKT,
-    ten_nguoi_kiem: ten,
-    san_pham: sanPham,
-    tien_dau_ca: tienDauCa,
-    tien_cuoi_ca: tienCuoiCa,
-    chi_phi:      numVal('chi_phi'),
-    dt_ngan_hang: numVal('dt_ngan_hang'),
-    tong_dt_hang: _state.tongDtHang,
-    tong_dt_tien: _state.tongDtTien,
-    ly_do: lyDo
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      await fetch(GAS_URL, {method:'POST', body:JSON.stringify(data)});
+      showToast('✓ Đã gửi báo cáo ca!', 'ok');
+      setTimeout(()=>{ localStorage.removeItem(STORAGE_KEY); setDataRaw(INIT()); setScreen('hub'); }, 2000);
+    } catch(e) {
+      showToast('❌ Lỗi: '+e.message, 'err');
+    } finally { setSubmitting(false); }
   };
 
-  // Lock UI
-  const btn = document.getElementById('btn_submit');
-  btn.textContent = 'Đang gửi…';
-  btn.className   = 'loading';
-  btn.disabled    = true;
-
-  try {
-    const res = await fetch(GAS_URL, {
-      method:  'POST',
-      headers: {'Content-Type': 'text/plain;charset=utf-8'},
-      body:    JSON.stringify(payload)
-    });
-    const result = await res.json();
-
-    if (result.success) {
-      showToast('✓ Đã lưu ca thành công!', 'ok');
-      btn.textContent = '✓ Đã gửi';
-      btn.className   = 'ready';
-
-      setTimeout(() => {
-        if (confirm('Gửi thành công!\nBạn có muốn xóa form để nhập ca mới không?')) {
-          location.reload();
-        } else {
-          btn.textContent = 'Gửi Ca';
-          btn.disabled    = false;
-        }
-      }, 800);
-    } else {
-      throw new Error(result.error || 'Server báo lỗi không xác định');
-    }
-  } catch (err) {
-    showToast('Lỗi: ' + err.message, 'err');
-    btn.textContent = 'Gửi Ca';
-    calculate(); // restore button state
-  }
+  return (
+    <div style={{height:'100%',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      {screen==='hub'       &&<Hub      data={data} setData={setData} setScreen={nav}/>}
+      {screen==='dau'       &&<DauCa    data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')}/>}
+      {screen==='trong'     &&<TrongCa  data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')}/>}
+      {screen==='cuoi'      &&<CuoiCa   data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')}/>}
+      {screen==='tien-dau'  &&<Tien mode="dau"  data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('tien-cuoi')}/>}
+      {screen==='tien-cuoi' &&<Tien mode="cuoi" data={data} setData={setData} onBack={()=>nav('tien-dau')} onDone={()=>nav('giao')}/>}
+      {screen==='giao'      &&<GiaoCa   data={data} setData={setData} onBack={()=>nav('tien-cuoi')} onSubmit={handleSubmit} submitting={submitting}/>}
+      {toast&&<div className={`toast ${toast.type}`}>{toast.msg}</div>}
+    </div>
+  );
 }
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────
-function escHtml(str) {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-// ─── START ────────────────────────────────────────────────────────────────
-init();
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
