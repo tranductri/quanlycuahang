@@ -350,6 +350,7 @@ function CuoiCa({data, setData, onBack, onDone}) {
   });
   const doneCount = rows.filter(r=>r.checked).length;
   const allDone   = doneCount===rows.length;
+  const totalRev  = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
   return (
     <div className="screen">
       <div className="app-bar">
@@ -395,6 +396,12 @@ function CuoiCa({data, setData, onBack, onDone}) {
         </div>
       </div>
       <div className="bottom-bar">
+        {doneCount>0&&(
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,padding:'0 4px'}}>
+            <div style={{fontSize:11,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700}}>Doanh thu</div>
+            <div className="t-money" style={{fontSize:16,fontWeight:800}}>{fmt(totalRev)}</div>
+          </div>
+        )}
         <button className={`btn-primary ${allDone?'is-ok':''}`} onClick={onDone}>
           {allDone?'✓ Xong — sang đếm tiền':'Tiếp tục →'}
         </button>
@@ -580,12 +587,6 @@ function Hub({data, setData, setScreen}) {
           <div>
             <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>{data.ngay} · {data.vi_tri||'Chưa mở ca'}</div>
             <h1 style={{color:'#fff',fontSize:19,marginTop:2}}>{data.ten?`Ca của ${data.ten}`:'Kiểm kê ca'}</h1>
-          </div>
-        </div>
-        <div style={{marginTop:14,padding:'12px 14px',background:'rgba(255,255,255,.08)',borderRadius:'var(--r)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div>
-            <div style={{fontSize:11,opacity:.6,letterSpacing:1,textTransform:'uppercase',fontWeight:600}}>Doanh thu dự kiến</div>
-            <div className="t-money" style={{fontSize:24,fontWeight:800,marginTop:2,color:'#fff'}}>{fmt(totalRev)}</div>
           </div>
         </div>
       </div>
