@@ -127,6 +127,36 @@ const INIT = () => ({
 
 const STORAGE_KEY = 'ca_v2';
 
+/* ─── INFO BUTTON ─── */
+function InfoBtn({text, light}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button onClick={()=>setOpen(true)} style={{
+        width:30,height:30,borderRadius:'50%',flexShrink:0,
+        background:light?'var(--paper-2)':'rgba(255,255,255,.15)',
+        color:light?'var(--muted)':'rgba(255,255,255,.8)',
+        fontSize:15,fontWeight:700,border:0,cursor:'pointer',lineHeight:1
+      }}>ℹ</button>
+      {open&&(
+        <div onClick={()=>setOpen(false)} style={{
+          position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:600,
+          display:'flex',alignItems:'flex-end'
+        }}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            width:'100%',background:'var(--paper)',
+            borderRadius:'var(--r-lg) var(--r-lg) 0 0',
+            padding:'12px 20px 40px'
+          }}>
+            <div style={{width:36,height:4,background:'var(--line)',borderRadius:2,margin:'0 auto 14px'}}/>
+            <div style={{fontSize:14,color:'var(--ink-2)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{text}</div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ─── STEPPER ─── */
 function Stepper({value, onChange, size='md'}) {
   const set = n => onChange(Math.max(0,n));
@@ -236,6 +266,7 @@ function TrongCa({data, setData, onBack, onDone}) {
             <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>Bước 3 · Đang trong ca</div>
             <h1 style={{color:'#fff',fontSize:18,marginTop:2}}>Theo dõi xuất / nhập / hư / KM</h1>
           </div>
+          <InfoBtn text={"Tap nút để +1. Nút có số → góc trên hiện − để giảm.\n\nXuất = bán ra\nNhập = mẻ mới ra lò\nHư = rơi / mốc / hỏng\nKM = tặng khuyến mãi"}/>
         </div>
         <div style={{marginTop:12,padding:'12px 14px',background:'rgba(255,255,255,.08)',borderRadius:'var(--r)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div>
@@ -312,10 +343,6 @@ function TrongCa({data, setData, onBack, onDone}) {
             );
           })}
         </div>
-        <div style={{marginTop:14,padding:'12px 14px',background:'var(--paper-2)',borderRadius:'var(--r)',fontSize:12,color:'var(--ink-2)',lineHeight:1.55}}>
-          <strong>💡 Cách dùng:</strong> Tap nút để +1. Nút có số → góc trên hiện <strong>−</strong> để giảm.<br/>
-          <span style={{color:'var(--muted)',fontSize:11}}>Xuất = bán · Nhập = mẻ mới ra lò · Hư = rơi/mốc · KM = tặng</span>
-        </div>
       </div>
       <div className="bottom-bar">
         <button className="btn-primary" onClick={onDone}>Cuối ca → Đối chiếu</button>
@@ -362,9 +389,7 @@ function CuoiCa({data, setData, onBack, onDone}) {
             <div className="h-section">Bước 4 · Cuối ca</div>
             <h1 style={{fontSize:18,marginTop:2}}>Đối chiếu tồn cuối</h1>
           </div>
-        </div>
-        <div style={{marginTop:12,padding:'10px 12px',background:'var(--paper-2)',borderRadius:'var(--r)',fontSize:12,color:'var(--ink-2)',lineHeight:1.45}}>
-          App đã điền sẵn số dự kiến. Nếu đếm thực tế khác → sửa số đó. Lệch → quay lại Trong ca chỉnh.
+          <InfoBtn light text={"App đã điền sẵn số dự kiến từ dữ liệu trong ca.\n\nNếu đếm thực tế khác → sửa số đó.\nCó lệch → quay lại Trong ca chỉnh rồi mở lại Cuối ca."}/>
         </div>
       </div>
       <div className="scroll-area" style={{padding:'12px 14px 24px'}}>
@@ -456,8 +481,10 @@ function Tien({mode, data, setData, onBack, onDone}) {
             <div className="h-section">{isCuoi?'Bước cuối · Tiền cuối ca':'Bước 2 · Đầu ca — Tiền mặt'}</div>
             <h1 style={{fontSize:18,marginTop:2}}>{isCuoi?'Đếm tiền cuối ca':'Đếm tiền đầu ca'}</h1>
           </div>
+          <InfoBtn light text={isCuoi
+            ?"Đếm toàn bộ tiền mặt trong két cuối ca.\n\nApp tự tính: Tiền đầu ca + Doanh thu − Chuyển khoản − Chi phí = Dự kiến.\nSo sánh với số đếm thực tế để ra lệch tiền."
+            :"Đếm toàn bộ tiền mặt có sẵn trong két lúc nhận ca.\n\nCuối ca app sẽ dùng số này để tính chênh lệch tiền mặt."}/>
         </div>
-        {!isCuoi&&<div style={{marginTop:10,padding:'10px 12px',background:'var(--paper-2)',borderRadius:'var(--r)',fontSize:12,color:'var(--ink-2)',lineHeight:1.45}}>Đếm toàn bộ tiền mặt có sẵn trong két lúc nhận ca. Cuối ca app sẽ tự tính chênh lệch.</div>}
       </div>
       <div className="scroll-area" style={{padding:'10px 12px 24px'}}>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -549,6 +576,7 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
             <div className="h-section">Bước cuối · Bàn giao</div>
             <h1 style={{fontSize:18,marginTop:2}}>Bàn giao ca</h1>
           </div>
+          <InfoBtn light text={"Cùng ca sau đối chiếu số liệu.\n\nCả hai ký tên xác nhận → bàn giao hoàn tất.\nSố tồn Cuối ca sẽ thành Đầu ca cho ca tiếp theo."}/>
         </div>
       </div>
       <div className="scroll-area" style={{padding:'14px 14px 24px'}}>
@@ -585,9 +613,6 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
               <textarea className="field-input" placeholder="Lý do lệch tiền/hàng…" value={data.ghi_chu||''} onChange={e=>upd('ghi_chu',e.target.value)} rows={3} style={{height:'auto',fontSize:14,padding:10,resize:'none'}}/>
             </div>
           </div>
-        </div>
-        <div style={{padding:14,background:'var(--paper-2)',borderRadius:'var(--r)',fontSize:12,color:'var(--ink-2)',lineHeight:1.55}}>
-          <strong>Quy trình bàn giao:</strong> Cùng ca sau đối chiếu → cả hai ký → số "Cuối ca" tự thành "Đầu ca" ca tiếp theo.
         </div>
       </div>
       <div className="bottom-bar">
@@ -629,6 +654,7 @@ function Hub({data, setData, setScreen}) {
             <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>{data.ngay} · {data.vi_tri||'Chưa mở ca'}</div>
             <h1 style={{color:'#fff',fontSize:19,marginTop:2}}>{data.ten?`Ca của ${data.ten}`:'Kiểm kê ca'}</h1>
           </div>
+          <InfoBtn text={"Quy trình một ca:\n\n1. Kiểm hàng đầu ca — đếm tồn 3 khu vực\n2. Đếm tiền đầu ca — đếm tiền trong két\n3. Trong ca — tap + mỗi lần bán / nhập / hư / KM\n4. Cuối ca — đếm thực tế, app báo lệch\n5. Đếm tiền cuối ca → Bàn giao ký tên"}/>
         </div>
         <div style={{marginTop:14,padding:'12px 14px',background:'rgba(255,255,255,.08)',borderRadius:'var(--r)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div>
@@ -695,9 +721,6 @@ function Hub({data, setData, setScreen}) {
           <button className="btn-ghost" style={{height:60}} onClick={()=>setScreen('tien-cuoi')}>
             💵 Đếm tiền cuối ca &amp; bàn giao →
           </button>
-        </div>
-        <div style={{marginTop:18,padding:14,background:'var(--paper-2)',borderRadius:'var(--r)',fontSize:12,color:'var(--ink-2)',lineHeight:1.55}}>
-          <strong>Quy trình:</strong> Đầu ca đếm 1 lần → Cả ca tap "+" mỗi lần bán → Cuối ca đếm thực tế, app báo lệch.
         </div>
       </div>
     </div>
