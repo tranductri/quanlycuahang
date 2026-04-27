@@ -105,6 +105,7 @@ const denomBg = d => ({
 const INIT = () => ({
   ngay: new Date().toISOString().slice(0,10),
   vi_tri:'', ten:'',
+  dau_ca_done: false,
   products: PRODUCTS.map(()=>({})),
   tien_dau:{}, tien_cuoi:{},
   chi_phi:0, dt_nh:0,
@@ -554,19 +555,18 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
 /* ─── HUB ─── */
 function Hub({data, setData, setScreen}) {
   const [tenInput, setTenInput] = useState(data.ten||'');
-  const productsDone= data.products.every(v=>v.dau_h1||v.dau_h2||v.dau_kho);
   const tienDauTotal= DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
-  const dauDone    = productsDone && tienDauTotal>0;
+  const dauDone    = data.dau_ca_done && tienDauTotal>0;
   const trongActive= data.products.some(v=>(v.xuat||0)>0);
   const cuoiDone   = data.products.every(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='');
   const totalRev   = data.products.reduce((s,v,i)=>s+(v.xuat||0)*PRODUCTS[i].gia,0);
   const lechCount  = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''&&(Number(v.cuoi_thuc)-computePredicted(v))!==0).length;
   const totalSold  = data.products.reduce((s,v)=>s+(v.xuat||0),0);
   const dauSub = dauDone?'Đã đếm hàng + tiền xong'
-    :productsDone?`Hàng xong — cần đếm tiền (${fmt(tienDauTotal||0)})`
+    :data.dau_ca_done?'Hàng xong — cần đếm tiền đầu ca'
     :'Đếm tồn hàng + tiền đầu ca';
   const tiles = [
-    {key:'dau',  step:1,title:'Đầu ca',  icon:'📥',done:dauDone,warn:productsDone&&!tienDauTotal,enabled:true, sub:dauSub},
+    {key:'dau',  step:1,title:'Đầu ca',  icon:'📥',done:dauDone,warn:data.dau_ca_done&&!tienDauTotal,enabled:true, sub:dauSub},
     {key:'trong',step:2,title:'Trong ca',icon:'🛒',active:trongActive,done:false,enabled:dauDone,
      sub:trongActive?`Đã bán ${totalSold} cái · ${fmt(totalRev)}`:'Bấm + mỗi lần bán'},
     {key:'cuoi', step:3,title:'Cuối ca', icon:'🔍',done:cuoiDone&&lechCount===0,warn:cuoiDone&&lechCount>0,enabled:trongActive,
@@ -685,7 +685,7 @@ function App() {
   return (
     <div style={{height:'100%',display:'flex',flexDirection:'column',overflow:'hidden'}}>
       {screen==='hub'       &&<Hub      data={data} setData={setData} setScreen={nav}/>}
-      {screen==='dau'       &&<DauCa    data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('tien-dau')}/>}
+      {screen==='dau'       &&<DauCa    data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>{ setData({...data, dau_ca_done:true}); nav('tien-dau'); }}/>}
       {screen==='trong'     &&<TrongCa  data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')}/>}
       {screen==='cuoi'      &&<CuoiCa   data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')}/>}
       {screen==='tien-dau'  &&<Tien mode="dau"  data={data} setData={setData} onBack={()=>nav('dau')}       onDone={()=>nav('hub')}/>}
