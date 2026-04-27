@@ -1,4 +1,4 @@
-const CACHE = 'kiem-ke-ca-v4';
+const CACHE = 'kiem-ke-ca-v5';
 
 const PRECACHE = [
   '/quanlycuahang/',
@@ -12,8 +12,9 @@ const PRECACHE = [
 ];
 
 self.addEventListener('install', e => {
+  // Do NOT call skipWaiting here — wait for user to confirm reload
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(c => c.addAll(PRECACHE))
   );
 });
 
@@ -23,6 +24,11 @@ self.addEventListener('activate', e => {
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+// User taps "Tải lại" → app sends this message → SW skips waiting → page reloads
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', e => {

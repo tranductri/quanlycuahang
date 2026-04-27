@@ -700,13 +700,16 @@ function App() {
   useEffect(()=>{
     if (!('serviceWorker' in navigator)) return;
     navigator.serviceWorker.register('/quanlycuahang/sw.js').then(reg=>{
-      // Phát hiện SW mới cài xong
+      const onWaiting = () => {
+        if (navigator.serviceWorker.controller) setHasUpdate(true);
+      };
+      // SW đã ở trạng thái waiting ngay khi load (ví dụ sau khi tab nền tải xong)
+      if (reg.waiting) { onWaiting(); }
+      // SW mới vừa tìm thấy
       reg.addEventListener('updatefound', ()=>{
         const sw = reg.installing;
         sw.addEventListener('statechange', ()=>{
-          if (sw.state==='installed' && navigator.serviceWorker.controller) {
-            setHasUpdate(true);
-          }
+          if (sw.state==='installed') onWaiting();
         });
       });
       // Kiểm tra cập nhật mỗi khi mở lại app
@@ -714,6 +717,8 @@ function App() {
         if (document.visibilityState==='visible') reg.update();
       });
     });
+    // Sau khi SW mới kích hoạt (do SKIP_WAITING) → reload để lấy bản mới
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>window.location.reload());
   }, []);
 
   const setData = d => {
@@ -739,7 +744,12 @@ function App() {
       {hasUpdate&&(
         <div style={{flexShrink:0,background:'var(--ok)',color:'#fff',padding:'10px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,zIndex:300}}>
           <span style={{fontSize:14,fontWeight:600}}>🔄 Có bản cập nhật mới</span>
-          <button onClick={()=>window.location.reload()} style={{background:'#fff',color:'var(--ok)',padding:'6px 16px',borderRadius:8,fontSize:13,fontWeight:700,border:0,cursor:'pointer',flexShrink:0}}>
+          <button onClick={()=>{
+            navigator.serviceWorker.ready.then(reg=>{
+              if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
+              else window.location.reload();
+            });
+          }} style={{background:'#fff',color:'var(--ok)',padding:'6px 16px',borderRadius:8,fontSize:13,fontWeight:700,border:0,cursor:'pointer',flexShrink:0}}>
             Tải lại
           </button>
         </div>
