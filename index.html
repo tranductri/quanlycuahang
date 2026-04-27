@@ -612,23 +612,35 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
 /* ─── HUB ─── */
 function Hub({data, setData, setScreen}) {
   const [editing, setEditing] = useState(!(data.ten&&data.vi_tri));
-  const tienDauTotal= DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
-  const hangDone   = data.dau_ca_done;
-  const tienDauDone= tienDauTotal>0;
-  const trongActive= data.products.some(v=>(v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)>0);
-  const cuoiDone   = data.products.every(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='');
-  const totalRev   = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
-  const filledCount= data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0).length;
-  const cuoiCount  = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='').length;
-  const tiles = [
-    {key:'dau',     step:1,title:'Kiểm hàng đầu ca',  icon:'📦',done:hangDone,   enabled:true,
-     sub:hangDone?`${filledCount}/${PRODUCTS.length} sản phẩm đã đếm`:'Đếm tồn hàng đầu ca'},
-    {key:'tien-dau',step:2,title:'Đếm tiền đầu ca',  icon:'💵',done:tienDauDone,enabled:true,
-     sub:tienDauDone?`Tổng ${fmt(tienDauTotal)}`:'Đếm tiền mặt tại két'},
-    {key:'trong',   step:3,title:'Trong ca',          icon:'🛒',active:trongActive,done:false,enabled:true,
-     sub:trongActive?`Đang theo dõi · ${fmt(totalRev)}`:'Bấm + mỗi lần bán / nhập / hư'},
-    {key:'cuoi',    step:4,title:'Cuối ca',            icon:'🔍',done:cuoiDone,enabled:true,
-     sub:cuoiDone?`✓ Đã đếm ${cuoiCount}/${PRODUCTS.length}`:`Đã đếm ${cuoiCount}/${PRODUCTS.length}`},
+  const tienDauTotal = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
+  const tienCuoiTotal= DENOMS.reduce((s,d)=>s+(data.tien_cuoi?.[d]||0)*d,0);
+  const hangDone    = data.dau_ca_done;
+  const tienDauDone = tienDauTotal>0;
+  const tienCuoiDone= tienCuoiTotal>0;
+  const trongActive = data.products.some(v=>(v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)>0);
+  const cuoiDone    = data.products.every(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='');
+  const totalRev    = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
+  const filledCount = data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0).length;
+  const cuoiCount   = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='').length;
+  const sections = [
+    { label:'Đầu ca', tiles:[
+      {key:'dau',      title:'Kiểm hàng', icon:'📦', done:hangDone,
+       sub:hangDone?`${filledCount}/${PRODUCTS.length} sản phẩm đã đếm`:'Đếm tồn hàng + bánh cũ'},
+      {key:'tien-dau', title:'Kiểm tiền', icon:'💵', done:tienDauDone,
+       sub:tienDauDone?`Tổng ${fmt(tienDauTotal)}`:'Đếm tiền mặt tại két'},
+    ]},
+    { label:'Trong ca', tiles:[
+      {key:'trong', title:'Xuất / Nhập / Hư / KM', icon:'🛒', active:trongActive,
+       sub:trongActive?`Đang theo dõi · ${fmt(totalRev)}`:'Bấm + mỗi lần có thay đổi'},
+    ]},
+    { label:'Cuối ca', tiles:[
+      {key:'cuoi',      title:'Kiểm hàng', icon:'🔍', done:cuoiDone,
+       sub:cuoiDone?`✓ Đã đếm ${cuoiCount}/${PRODUCTS.length}`:`Đã đếm ${cuoiCount}/${PRODUCTS.length}`},
+      {key:'tien-cuoi', title:'Kiểm tiền', icon:'💵', done:tienCuoiDone,
+       sub:tienCuoiDone?`Tổng ${fmt(tienCuoiTotal)}`:'Đếm tiền mặt cuối ca'},
+      {key:'giao',      title:'Bàn giao',  icon:'📋',
+       sub:'Ký tên xác nhận & gửi báo cáo'},
+    ]},
   ];
   return (
     <div className="screen">
@@ -666,33 +678,33 @@ function Hub({data, setData, setScreen}) {
             </button>
           </div>
         )}
-        <div style={{display:'flex',flexDirection:'column',gap:10}}>
-          {tiles.map(t=>(
-            <button key={t.key} onClick={()=>t.enabled&&setScreen(t.key)} disabled={!t.enabled} style={{
-              display:'flex',alignItems:'center',gap:14,padding:'16px',background:'var(--card)',borderRadius:'var(--r-lg)',textAlign:'left',
-              border:'1px solid '+(t.warn?'var(--err)':t.done?'var(--ok)':'var(--line)'),
-              borderWidth:(t.done||t.warn)?1.5:1,opacity:t.enabled?1:.5,cursor:t.enabled?'pointer':'not-allowed'
-            }}>
-              <div style={{width:56,height:56,borderRadius:16,fontSize:26,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',
-                background:t.warn?'var(--err-soft)':t.done?'var(--ok-soft)':t.active?'var(--accent-soft)':'var(--paper-2)'}}>{t.icon}</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:2}}>
-                  <span style={{fontSize:11,fontWeight:700,color:'var(--muted)',letterSpacing:1}}>BƯỚC {t.step}</span>
-                  {t.done&&<span className="chip chip-ok" style={{padding:'1px 8px',fontSize:10}}>✓ XONG</span>}
-                  {t.active&&!t.done&&<span className="chip chip-accent" style={{padding:'1px 8px',fontSize:10}}>● ĐANG</span>}
-                  {t.warn&&<span className="chip chip-err" style={{padding:'1px 8px',fontSize:10}}>⚠ LỆCH</span>}
-                </div>
-                <div style={{fontSize:17,fontWeight:700,lineHeight:1.2}}>{t.title}</div>
-                <div style={{fontSize:13,color:'var(--muted)',marginTop:3}}>{t.sub}</div>
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          {sections.map(s=>(
+            <div key={s.label}>
+              <div className="h-section" style={{marginBottom:8}}>{s.label}</div>
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {s.tiles.map(t=>(
+                  <button key={t.key} onClick={()=>setScreen(t.key)} style={{
+                    display:'flex',alignItems:'center',gap:14,padding:'14px 16px',background:'var(--card)',borderRadius:'var(--r-lg)',textAlign:'left',
+                    border:'1px solid '+(t.done?'var(--ok)':'var(--line)'),
+                    borderWidth:t.done?1.5:1,cursor:'pointer'
+                  }}>
+                    <div style={{width:48,height:48,borderRadius:14,fontSize:24,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',
+                      background:t.done?'var(--ok-soft)':t.active?'var(--accent-soft)':'var(--paper-2)'}}>{t.icon}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                        <span style={{fontSize:16,fontWeight:700,lineHeight:1.2}}>{t.title}</span>
+                        {t.done&&<span className="chip chip-ok" style={{padding:'1px 7px',fontSize:10}}>✓</span>}
+                        {t.active&&!t.done&&<span className="chip chip-accent" style={{padding:'1px 7px',fontSize:10}}>●</span>}
+                      </div>
+                      <div style={{fontSize:12,color:'var(--muted)',marginTop:1}}>{t.sub}</div>
+                    </div>
+                    <span style={{color:'var(--muted)',fontSize:20}}>›</span>
+                  </button>
+                ))}
               </div>
-              <span style={{color:t.enabled?'var(--muted)':'var(--line-2)',fontSize:22}}>›</span>
-            </button>
+            </div>
           ))}
-        </div>
-        <div style={{marginTop:14}}>
-          <button className="btn-ghost" style={{height:60}} onClick={()=>setScreen('tien-cuoi')}>
-            💵 Đếm tiền cuối ca &amp; bàn giao →
-          </button>
         </div>
         <div style={{marginTop:10}}>
           <button className="btn-ghost" style={{height:48,color:'var(--err)',borderColor:'var(--err-soft)'}}
