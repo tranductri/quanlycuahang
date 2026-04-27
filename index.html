@@ -615,6 +615,8 @@ function Hub({data, setData, setScreen}) {
   const tienDauTotal = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
   const tienCuoiTotal= DENOMS.reduce((s,d)=>s+(data.tien_cuoi?.[d]||0)*d,0);
   const hangDone    = data.dau_ca_done;
+  const prevData    = React.useMemo(()=>{ try { return JSON.parse(localStorage.getItem(prevKey(data.vi_tri))||'null'); } catch { return null; } }, [data.vi_tri]);
+  const dauLechCount= hangDone&&prevData ? data.products.filter((v,i)=>{ const pt=prevData[i]?.cuoi_thuc; if(pt===undefined||pt==='') return false; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)!==Number(pt); }).length : 0;
   const tienDauDone = tienDauTotal>0;
   const tienCuoiDone= tienCuoiTotal>0;
   const trongActive = data.products.some(v=>(v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)>0);
@@ -624,8 +626,8 @@ function Hub({data, setData, setScreen}) {
   const cuoiCount   = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='').length;
   const sections = [
     { label:'Đầu ca', tiles:[
-      {key:'dau',      title:'Kiểm hàng', icon:'📦', done:hangDone,
-       sub:hangDone?`${filledCount}/${PRODUCTS.length} sản phẩm đã đếm`:'Đếm tồn hàng + bánh cũ'},
+      {key:'dau',      title:'Kiểm hàng', icon:'📦', done:hangDone&&dauLechCount===0, warn:hangDone&&dauLechCount>0,
+       sub:hangDone?(dauLechCount>0?`⚠ ${dauLechCount} sản phẩm lệch ca trước`:`${filledCount}/${PRODUCTS.length} sản phẩm đã đếm`):'Đếm tồn hàng + bánh cũ'},
       {key:'tien-dau', title:'Kiểm tiền', icon:'💵', done:tienDauDone,
        sub:tienDauDone?`Tổng ${fmt(tienDauTotal)}`:'Đếm tiền mặt tại két'},
     ]},
@@ -686,18 +688,19 @@ function Hub({data, setData, setScreen}) {
                 {s.tiles.map(t=>(
                   <button key={t.key} onClick={()=>setScreen(t.key)} style={{
                     display:'flex',alignItems:'center',gap:14,padding:'14px 16px',background:'var(--card)',borderRadius:'var(--r-lg)',textAlign:'left',
-                    border:'1px solid '+(t.done?'var(--ok)':'var(--line)'),
-                    borderWidth:t.done?1.5:1,cursor:'pointer'
+                    border:'1.5px solid '+(t.warn?'var(--warn)':t.done?'var(--ok)':'var(--line)'),
+                    cursor:'pointer'
                   }}>
                     <div style={{width:48,height:48,borderRadius:14,fontSize:24,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',
-                      background:t.done?'var(--ok-soft)':t.active?'var(--accent-soft)':'var(--paper-2)'}}>{t.icon}</div>
+                      background:t.warn?'var(--warn-soft,#fff3cd)':t.done?'var(--ok-soft)':t.active?'var(--accent-soft)':'var(--paper-2)'}}>{t.icon}</div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
                         <span style={{fontSize:16,fontWeight:700,lineHeight:1.2}}>{t.title}</span>
                         {t.done&&<span className="chip chip-ok" style={{padding:'1px 7px',fontSize:10}}>✓</span>}
-                        {t.active&&!t.done&&<span className="chip chip-accent" style={{padding:'1px 7px',fontSize:10}}>●</span>}
+                        {t.warn&&<span style={{fontSize:10,fontWeight:700,padding:'1px 7px',borderRadius:6,background:'var(--warn-soft,#fff3cd)',color:'var(--warn)'}}>⚠</span>}
+                        {t.active&&!t.done&&!t.warn&&<span className="chip chip-accent" style={{padding:'1px 7px',fontSize:10}}>●</span>}
                       </div>
-                      <div style={{fontSize:12,color:'var(--muted)',marginTop:1}}>{t.sub}</div>
+                      <div style={{fontSize:12,color:t.warn?'var(--warn)':'var(--muted)',marginTop:1}}>{t.sub}</div>
                     </div>
                     <span style={{color:'var(--muted)',fontSize:20}}>›</span>
                   </button>
