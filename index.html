@@ -93,6 +93,19 @@ const DENOMS = [500000,200000,100000,50000,20000,10000,5000,2000,1000];
 const computePredicted = v =>
   (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.nhap||0)-(v.xuat||0)-(v.hu||0)-(v.km||0);
 
+// Tiêu thụ thực = tính từ kiểm kho (chỉ có sau khi nhập cuoi_thuc)
+// = Đầu + Nhập - Hư - KM - Tồn cuối thực tế
+const computeTieuThu = v => {
+  if (v.cuoi_thuc === undefined || v.cuoi_thuc === '') return null;
+  return Math.max(0, (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.nhap||0)-(v.hu||0)-(v.km||0)-Number(v.cuoi_thuc));
+};
+
+// Doanh thu: dùng tiêu thụ thực nếu có, fallback sang xuat khi chưa cuối ca
+const productRev = (v,i) => {
+  const tt = computeTieuThu(v);
+  return (tt !== null ? tt : (v.xuat||0)) * PRODUCTS[i].gia;
+};
+
 const fmt = n => Math.round(n).toLocaleString('vi-VN')+'đ';
 
 const denomLabel = d => d>=1000000?(d/1000000)+'tr':d>=1000?(d/1000)+'k':String(d);
@@ -211,7 +224,7 @@ function TrongCa({data, setData, onBack, onDone}) {
   const upd = (i,k,d) => {
     const ps=[...data.products]; ps[i]={...ps[i],[k]:Math.max(0,(ps[i]?.[k]||0)+d)}; setData({...data,products:ps});
   };
-  const totalRev    = data.products.reduce((s,v,i)=>s+(v.xuat||0)*PRODUCTS[i].gia,0);
+  const totalRev    = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
   const totalSold   = data.products.reduce((s,v)=>s+(v.xuat||0),0);
   const outOfStockN = data.products.filter((v,i)=>{const ton=computePredicted(v); return ton<=0;}).length;
   return (
@@ -334,9 +347,10 @@ function CuoiCa({data, setData, onBack, onDone}) {
     const actual=v.cuoi_thuc;
     const checked=actual!==undefined&&actual!=='';
     const diff=checked?(Number(actual)-predicted):0;
-    return {p,i,v,predicted,actual,checked,diff};
+    const tieuThu=computeTieuThu(v);
+    return {p,i,v,predicted,actual,checked,diff,tieuThu};
   });
-  const totalRev  = data.products.reduce((s,v,i)=>s+(v.xuat||0)*PRODUCTS[i].gia,0);
+  const totalRev  = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
   const lechCount = rows.filter(r=>r.checked&&r.diff!==0).length;
   const allChecked= rows.every(r=>r.checked);
   return (
@@ -368,7 +382,12 @@ function CuoiCa({data, setData, onBack, onDone}) {
                   <span style={{fontSize:22}}>{r.p.emoji}</span>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:700,lineHeight:1.2}}>{r.p.short}</div>
-                    <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>Bán {r.v.xuat||0} · {fmt((r.v.xuat||0)*r.p.gia)}</div>
+                    <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>
+                      {r.tieuThu!==null
+                        ?<>Tiêu thụ: <span className="t-num" style={{fontWeight:700,color:'var(--ink-2)'}}>{r.tieuThu}</span> · <span className="t-money">{fmt(r.tieuThu*r.p.gia)}</span></>
+                        :<>Theo dõi: {r.v.xuat||0} · {fmt((r.v.xuat||0)*r.p.gia)}</>
+                      }
+                    </div>
                   </div>
                   {ok&&<span className="chip chip-ok">✓</span>}
                   {lech&&<span className="chip chip-err">{r.diff>0?`+${r.diff}`:r.diff}</span>}
@@ -421,7 +440,7 @@ function Tien({mode, data, setData, onBack, onDone}) {
   const updD   = (d,delta) => setData({...data,[key]:{...counts,[d]:Math.max(0,(counts[d]||0)+delta)}});
   const setVal = (d,val)   => setData({...data,[key]:{...counts,[d]:Math.max(0,val)}});
   const total    = DENOMS.reduce((s,d)=>s+(counts[d]||0)*d,0);
-  const totalRev = data.products.reduce((s,v,i)=>s+(v.xuat||0)*PRODUCTS[i].gia,0);
+  const totalRev = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
   const dauTotal = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
   const chiPhi   = data.chi_phi||0;
   const dtNH     = data.dt_nh||0;
@@ -516,7 +535,7 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
   const upd       = (k,v) => setData({...data,[k]:v});
   const totalCuoi = DENOMS.reduce((s,d)=>s+(data.tien_cuoi?.[d]||0)*d,0);
   const totalDau  = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
-  const totalRev  = data.products.reduce((s,v,i)=>s+(v.xuat||0)*PRODUCTS[i].gia,0);
+  const totalRev  = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
   const lechCount = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''&&(Number(v.cuoi_thuc)-computePredicted(v))!==0).length;
   const expected  = totalDau+(totalRev-(data.dt_nh||0))-(data.chi_phi||0);
   const tienDiff  = totalCuoi-expected;
@@ -588,7 +607,7 @@ function Hub({data, setData, setScreen}) {
   const tienDauDone= tienDauTotal>0;
   const trongActive= data.products.some(v=>(v.xuat||0)>0);
   const cuoiDone   = data.products.every(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='');
-  const totalRev   = data.products.reduce((s,v,i)=>s+(v.xuat||0)*PRODUCTS[i].gia,0);
+  const totalRev   = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
   const lechCount  = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''&&(Number(v.cuoi_thuc)-computePredicted(v))!==0).length;
   const totalSold  = data.products.reduce((s,v)=>s+(v.xuat||0),0);
   const filledCount= data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)>0).length;

@@ -102,7 +102,9 @@ function buildRow(data) {
     var cuoi_thuc = v.cuoi_thuc !== undefined && v.cuoi_thuc !== '' ? Number(v.cuoi_thuc) : '';
     var predicted = dau_h1 + dau_h2 + dau_kho + nhap - xuat - hu - km;
     var lech      = cuoi_thuc !== '' ? cuoi_thuc - predicted : '';
-    var dt        = xuat * p.gia;
+    // Tiêu thụ thực = Đầu + Nhập − Hư − KM − Tồn cuối (tính từ kiểm kho)
+    var tieu_thu  = cuoi_thuc !== '' ? Math.max(0, dau_h1 + dau_h2 + dau_kho + nhap - hu - km - cuoi_thuc) : xuat;
+    var dt        = tieu_thu * p.gia;
     totalRev += dt;
 
     row.push(dau_h1, dau_h2, dau_kho, xuat, nhap, hu, km, cuoi_thuc, predicted, lech, dt);
