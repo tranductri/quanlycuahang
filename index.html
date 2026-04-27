@@ -113,17 +113,27 @@ const denomBg = d => ({
   20000:'#3b7c8e',10000:'#a5704a',5000:'#2e6b95',2000:'#a06b3a',1000:'#7a6a55'
 })[d]||'#666';
 
-const INIT = () => ({
-  ngay: new Date().toISOString().slice(0,10),
-  vi_tri:'', ten:'',
-  dau_ca_done: false,
-  products: PRODUCTS.map(()=>({})),
-  tien_dau:{}, tien_cuoi:{},
-  chi_phi:0, dt_nh:0,
-  nguoi_giao:'', nguoi_nhan:'', ghi_chu:''
-});
+const INIT = () => {
+  let user = {};
+  try { user = JSON.parse(localStorage.getItem(USER_KEY)||'{}'); } catch {}
+  return {
+    ngay: new Date().toISOString().slice(0,10),
+    vi_tri: user.vi_tri||'', ten: user.ten||'',
+    dau_ca_done: false,
+    products: PRODUCTS.map(()=>({})),
+    tien_dau:{}, tien_cuoi:{},
+    chi_phi:0, dt_nh:0,
+    nguoi_giao:'', nguoi_nhan:'', ghi_chu:''
+  };
+};
 
 const STORAGE_KEY = 'ca_v2';
+const USER_KEY    = 'ca_user';
+const prevKey     = loc => `ca_prev_${loc}`;
+
+const saveUser = (ten, vi_tri) => {
+  try { localStorage.setItem(USER_KEY, JSON.stringify({ten, vi_tri})); } catch {}
+};
 
 
 /* ─── STEPPER ─── */
@@ -150,11 +160,19 @@ const DAU_ZONES = [
   {k:'dau_kho',icon:'📥', label:'Kho'},
   {k:'dau_cu', icon:'🧁', label:'Bánh cũ'},
 ];
+const noNeg = e => { if(e.key==='-'||e.key==='e'||e.key==='E') e.preventDefault(); };
+
 function DauCa({data, setData, onBack, onDone}) {
   const upd = (i,k,val) => {
     const ps=[...data.products]; ps[i]={...ps[i],[k]:val}; setData({...data,products:ps});
   };
-  const filled = data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0).length;
+  const filled   = data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0).length;
+  const prevData = React.useMemo(()=>{ try { return JSON.parse(localStorage.getItem(prevKey(data.vi_tri))||'null'); } catch { return null; } }, [data.vi_tri]);
+  const lechCount= prevData ? data.products.filter((v,i)=>{
+    const pt=prevData[i]?.cuoi_thuc; if(pt===undefined||pt==='') return false;
+    const total=(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0);
+    return total!==Number(pt);
+  }).length : 0;
   return (
     <div className="screen">
       <div className="app-bar">
@@ -184,11 +202,24 @@ function DauCa({data, setData, onBack, onDone}) {
                     <div style={{fontSize:14,fontWeight:700,lineHeight:1.15}}>{p.short}</div>
                     <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{fmt(p.gia)}</div>
                   </div>
-                  <div style={{fontSize:11,fontWeight:600,padding:'4px 8px',borderRadius:8,
-                    color:total>0?'var(--ok)':'var(--muted)',
-                    background:total>0?'var(--ok-soft)':'var(--paper-2)'}}>
-                    ∑ <span className="t-num" style={{fontSize:13,fontWeight:800}}>{total||'—'}</span>
-                  </div>
+                  {(()=>{
+                    const prev=prevData?.[i]; const pt=prev?.cuoi_thuc;
+                    const lech=(pt!==undefined&&pt!==''&&filled>0)?total-Number(pt):null;
+                    return (
+                      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:3}}>
+                        <div style={{fontSize:11,fontWeight:600,padding:'4px 8px',borderRadius:8,
+                          color:total>0?'var(--ok)':'var(--muted)',
+                          background:total>0?'var(--ok-soft)':'var(--paper-2)'}}>
+                          ∑ <span className="t-num" style={{fontSize:13,fontWeight:800}}>{total||'—'}</span>
+                        </div>
+                        {lech!==null&&<span style={{fontSize:11,fontWeight:700,padding:'2px 7px',borderRadius:6,
+                          background:lech===0?'var(--ok-soft)':'var(--warn-soft,#fff3cd)',
+                          color:lech===0?'var(--ok)':'var(--warn)'}}>
+                          {lech===0?'✓':(lech>0?`+${lech}`:lech)}
+                        </span>}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
                   {DAU_ZONES.map(z=>{
@@ -200,10 +231,10 @@ function DauCa({data, setData, onBack, onDone}) {
                         border:'1.5px solid '+(has?'var(--ok)':'transparent'),
                         display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'4px 6px'
                       }}>
-                        <input type="number" inputMode="numeric"
+                        <input type="number" inputMode="numeric" min="0"
                           value={cnt===0?'':cnt} placeholder="0"
-                          onChange={e=>upd(i,z.k,parseInt(e.target.value||'0',10)||0)}
-                          onFocus={e=>e.target.select()}
+                          onChange={e=>upd(i,z.k,Math.max(0,parseInt(e.target.value||'0',10)||0))}
+                          onFocus={e=>e.target.select()} onKeyDown={noNeg}
                           style={{width:'100%',textAlign:'center',fontSize:20,fontWeight:800,
                             border:0,background:'transparent',color:has?'var(--ok)':'var(--line-2)',
                             lineHeight:1,padding:0,outline:'none'}}/>
@@ -218,7 +249,12 @@ function DauCa({data, setData, onBack, onDone}) {
         </div>
       </div>
       <div className="bottom-bar">
-        <button className={`btn-primary ${filled===PRODUCTS.length?'is-ok':''}`} onClick={onDone}>
+        {lechCount>0&&filled>0&&(
+          <div style={{marginBottom:8,padding:'8px 12px',borderRadius:8,background:'var(--warn-soft,#fff3cd)',color:'var(--warn)',fontWeight:700,fontSize:13}}>
+            ⚠ {lechCount} sản phẩm lệch so với ca trước
+          </div>
+        )}
+        <button className={`btn-primary ${filled===PRODUCTS.length&&lechCount===0?'is-ok':''}`} onClick={onDone}>
           {filled===PRODUCTS.length?'✓ Kiểm hàng xong':`Lưu (${filled}/${PRODUCTS.length} sản phẩm)`}
         </button>
       </div>
@@ -307,10 +343,10 @@ function TrongCa({data, setData, onBack, onDone}) {
                         border:'1.5px solid '+(has?a.color:'transparent'),
                         display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'4px 6px'
                       }}>
-                        <input type="number" inputMode="numeric"
+                        <input type="number" inputMode="numeric" min="0"
                           value={cnt===0?'':cnt} placeholder="0"
-                          onChange={e=>set(i,a.k,parseInt(e.target.value||'0',10)||0)}
-                          onFocus={e=>e.target.select()}
+                          onChange={e=>set(i,a.k,Math.max(0,parseInt(e.target.value||'0',10)||0))}
+                          onFocus={e=>e.target.select()} onKeyDown={noNeg}
                           style={{width:'100%',textAlign:'center',fontSize:20,fontWeight:800,
                             border:0,background:'transparent',color:has?a.ink:'var(--line-2)',
                             lineHeight:1,padding:0,outline:'none'}}/>
@@ -399,10 +435,10 @@ function CuoiCa({data, setData, onBack, onDone}) {
               </div>
               <div>
                 <div style={{fontSize:10,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700,marginBottom:4}}>Tồn cuối thực tế</div>
-                <input className="field-input" type="number" inputMode="numeric"
+                <input className="field-input" type="number" inputMode="numeric" min="0"
                   value={r.v.cuoi_thuc===undefined?'':r.v.cuoi_thuc} placeholder="—"
-                  onChange={e=>upd(r.i,e.target.value===''?undefined:(parseInt(e.target.value)||0))}
-                  onFocus={e=>e.target.select()}
+                  onChange={e=>upd(r.i,e.target.value===''?undefined:Math.max(0,parseInt(e.target.value)||0))}
+                  onFocus={e=>e.target.select()} onKeyDown={noNeg}
                   style={{height:48,fontSize:18,fontWeight:700,textAlign:'center'}}/>
               </div>
             </div>
@@ -575,7 +611,6 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
 
 /* ─── HUB ─── */
 function Hub({data, setData, setScreen}) {
-  const [tenInput, setTenInput] = useState(data.ten||'');
   const tienDauTotal= DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
   const hangDone   = data.dau_ca_done;
   const tienDauDone= tienDauTotal>0;
@@ -605,32 +640,21 @@ function Hub({data, setData, setScreen}) {
         </div>
       </div>
       <div className="scroll-area" style={{padding:'16px 14px 100px'}}>
-        {!data.ten&&(
-          <div className="m-card" style={{padding:14,marginBottom:14}}>
-            <div className="h-section" style={{marginBottom:10}}>Mở ca</div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
-              {['Quận 6','Bình Tân'].map(loc=>(
-                <button key={loc} onClick={()=>setData({...data,vi_tri:loc})} style={{height:52,borderRadius:'var(--r)',fontWeight:600,border:'1.5px solid '+(data.vi_tri===loc?'var(--accent)':'var(--line)'),background:data.vi_tri===loc?'var(--accent-soft)':'#fff'}}>📍 {loc}</button>
-              ))}
-            </div>
-            <input className="field-input" placeholder="Tên của bạn…"
-              value={tenInput}
-              onChange={e=>setTenInput(e.target.value)}
-              onKeyDown={e=>{ if(e.key==='Enter'&&tenInput.trim()&&data.vi_tri) setData({...data,ten:tenInput.trim()}); }}
-            />
-            <button className="btn-primary" style={{marginTop:10}}
-              disabled={!tenInput.trim()||!data.vi_tri}
-              onClick={()=>setData({...data,ten:tenInput.trim()})}>
-              Mở ca →
-            </button>
+        <div className="m-card" style={{padding:14,marginBottom:14}}>
+          <div className="h-section" style={{marginBottom:10}}>Thông tin ca</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
+            {['Quận 6','Bình Tân'].map(loc=>(
+              <button key={loc} onClick={()=>{ setData({...data,vi_tri:loc}); saveUser(data.ten,loc); }}
+                style={{height:52,borderRadius:'var(--r)',fontWeight:600,
+                  border:'1.5px solid '+(data.vi_tri===loc?'var(--accent)':'var(--line)'),
+                  background:data.vi_tri===loc?'var(--accent-soft)':'#fff'}}>📍 {loc}</button>
+            ))}
           </div>
-        )}
-        {data.ten&&(
-          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,padding:'10px 12px',background:'var(--paper-2)',borderRadius:'var(--r)'}}>
-            <span style={{fontSize:14,color:'var(--muted)'}}>📍 {data.vi_tri} · {data.ten}</span>
-            <button onClick={()=>setData({...data,ten:'',vi_tri:''})} style={{marginLeft:'auto',fontSize:12,color:'var(--accent)',fontWeight:600}}>Đổi</button>
-          </div>
-        )}
+          <input className="field-input" placeholder="Tên của bạn…"
+            value={data.ten||''}
+            onChange={e=>{ setData({...data,ten:e.target.value}); saveUser(e.target.value,data.vi_tri); }}
+          />
+        </div>
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           {tiles.map(t=>(
             <button key={t.key} onClick={()=>t.enabled&&setScreen(t.key)} disabled={!t.enabled} style={{
@@ -715,6 +739,9 @@ function App() {
     setSubmitting(true);
     try {
       await fetch(GAS_URL, {method:'POST', body:JSON.stringify(data)});
+      if (data.vi_tri) {
+        try { localStorage.setItem(prevKey(data.vi_tri), JSON.stringify(data.products.map(v=>({cuoi_thuc:v.cuoi_thuc})))); } catch {}
+      }
       showToast('✓ Đã gửi báo cáo ca!', 'ok');
       setTimeout(()=>{ localStorage.removeItem(STORAGE_KEY); setDataRaw(INIT()); setScreen('hub'); }, 2000);
     } catch(e) {
