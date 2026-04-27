@@ -72,7 +72,7 @@
 <script type="text/babel">
 const { useState, useEffect } = React;
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxGinGbDS1Rb-wag5WLo_JejHQ8q-5ddgEPkKnsbpjHs0ZZ4nqpHaaqvznMqgptAr_NNw/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbw771FgJAzFhgv7DZR9mNciMJ40aIzRjxP1waeaAQfdhXf61CqfJayjHEZgJq193DoLRQ/exec';
 
 const PRODUCTS = [
   {ten:'Bánh bao xúc xích phomai',       short:'BB xúc xích phomai',  gia:20000, emoji:'🥟'},
@@ -91,13 +91,11 @@ const PRODUCTS = [
 const DENOMS = [500000,200000,100000,50000,20000,10000,5000,2000,1000];
 
 const computePredicted = v =>
-  (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.nhap||0)-(v.xuat||0)-(v.hu||0)-(v.km||0);
+  (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)+(v.nhap||0)-(v.xuat||0)-(v.hu||0)-(v.km||0);
 
-// Tiêu thụ thực = tính từ kiểm kho (chỉ có sau khi nhập cuoi_thuc)
-// = Đầu + Nhập - Hư - KM - Tồn cuối thực tế
 const computeTieuThu = v => {
   if (v.cuoi_thuc === undefined || v.cuoi_thuc === '') return null;
-  return Math.max(0, (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.nhap||0)-(v.hu||0)-(v.km||0)-Number(v.cuoi_thuc));
+  return Math.max(0, (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)+(v.nhap||0)-(v.hu||0)-(v.km||0)-Number(v.cuoi_thuc));
 };
 
 // Doanh thu: dùng tiêu thụ thực nếu có, fallback sang xuat khi chưa cuối ca
@@ -127,38 +125,6 @@ const INIT = () => ({
 
 const STORAGE_KEY = 'ca_v2';
 
-/* ─── INFO BUTTON ─── */
-function InfoBtn({text, light}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button onClick={()=>setOpen(true)} style={{
-        width:30,height:30,borderRadius:'50%',flexShrink:0,
-        background:light?'var(--paper-2)':'rgba(255,255,255,.15)',
-        color:light?'var(--muted)':'rgba(255,255,255,.8)',
-        fontSize:15,fontWeight:700,border:0,cursor:'pointer',lineHeight:1
-      }}>ℹ</button>
-      {open&&(
-        <div onClick={()=>setOpen(false)} style={{
-          position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:600,
-          display:'flex',alignItems:'flex-end'
-        }}>
-          <div onClick={e=>e.stopPropagation()} style={{
-            width:'100%',background:'var(--paper)',
-            borderRadius:'var(--r-lg) var(--r-lg) 0 0',
-            padding:'12px 20px 40px'
-          }}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-              <div style={{width:36,height:4,background:'var(--line)',borderRadius:2}}/>
-              <button onClick={()=>setOpen(false)} style={{width:28,height:28,borderRadius:'50%',background:'var(--paper-2)',border:0,fontSize:16,color:'var(--muted)',cursor:'pointer',lineHeight:1}}>✕</button>
-            </div>
-            <div style={{fontSize:14,color:'var(--ink-2)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{text}</div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
 
 /* ─── STEPPER ─── */
 function Stepper({value, onChange, size='md'}) {
@@ -182,12 +148,13 @@ const DAU_ZONES = [
   {k:'dau_h1', icon:'🔥', label:'Tủ 1'},
   {k:'dau_h2', icon:'🔥', label:'Tủ 2'},
   {k:'dau_kho',icon:'📥', label:'Kho'},
+  {k:'dau_cu', icon:'🧁', label:'Bánh cũ'},
 ];
 function DauCa({data, setData, onBack, onDone}) {
   const upd = (i,k,val) => {
     const ps=[...data.products]; ps[i]={...ps[i],[k]:val}; setData({...data,products:ps});
   };
-  const filled = data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)>0).length;
+  const filled = data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0).length;
   return (
     <div className="screen">
       <div className="app-bar">
@@ -207,7 +174,7 @@ function DauCa({data, setData, onBack, onDone}) {
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           {PRODUCTS.map((p,i)=>{
             const v=data.products[i]||{};
-            const total=(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0);
+            const total=(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0);
             return (
               <div key={i} className="m-card" style={{padding:'8px 10px 8px',
                 borderColor:total>0?'var(--ok)':'var(--line)',borderWidth:total>0?1.5:1}}>
@@ -221,7 +188,7 @@ function DauCa({data, setData, onBack, onDone}) {
                     {total>0?`∑${total}`:'—'}
                   </div>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4}}>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:4}}>
                   {DAU_ZONES.map(z=>(
                     <div key={z.k}>
                       <div style={{fontSize:9,fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:2,letterSpacing:.3,textTransform:'uppercase'}}>
@@ -257,9 +224,11 @@ function TrongCa({data, setData, onBack, onDone}) {
   const upd = (i,k,d) => {
     const ps=[...data.products]; ps[i]={...ps[i],[k]:Math.max(0,(ps[i]?.[k]||0)+d)}; setData({...data,products:ps});
   };
-  const totalRev    = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
-  const totalSold   = data.products.reduce((s,v)=>s+Math.max(0,(v.xuat||0)-(v.hu||0)-(v.km||0)),0);
-  const outOfStockN = data.products.filter((v,i)=>{const ton=computePredicted(v); return ton<=0;}).length;
+  const set = (i,k,v) => {
+    const ps=[...data.products]; ps[i]={...ps[i],[k]:Math.max(0,v)}; setData({...data,products:ps});
+  };
+  const totalTon    = data.products.reduce((s,v)=>s+Math.max(0,computePredicted(v)),0);
+  const outOfStockN = data.products.filter(v=>computePredicted(v)<=0).length;
   return (
     <div className="screen">
       <div className="app-bar" style={{background:'var(--ink)',borderBottom:0,color:'#fff'}}>
@@ -269,14 +238,11 @@ function TrongCa({data, setData, onBack, onDone}) {
             <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>Bước 3 · Đang trong ca</div>
             <h1 style={{color:'#fff',fontSize:18,marginTop:2}}>Theo dõi xuất / nhập / hư / KM</h1>
           </div>
-          <InfoBtn text={"Tap nút để +1. Nút có số → góc trên hiện − để giảm.\n\nXuất = bán ra\nNhập = mẻ mới ra lò\nHư = rơi / mốc / hỏng\nKM = tặng khuyến mãi"}/>
         </div>
         <div style={{marginTop:12,padding:'12px 14px',background:'rgba(255,255,255,.08)',borderRadius:'var(--r)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div>
-            <div style={{fontSize:11,opacity:.6,letterSpacing:1,textTransform:'uppercase',fontWeight:600}}>Đã bán hôm nay</div>
-            <div className="t-num" style={{fontSize:22,fontWeight:800,marginTop:2,color:'#fff'}}>
-              {totalSold} cái · <span className="t-money">{fmt(totalRev)}</span>
-            </div>
+            <div style={{fontSize:11,opacity:.6,letterSpacing:1,textTransform:'uppercase',fontWeight:600}}>Tồn dự kiến</div>
+            <div className="t-num" style={{fontSize:22,fontWeight:800,marginTop:2,color:'#fff'}}>{totalTon} cái</div>
           </div>
           {outOfStockN>0&&(
             <div style={{background:'var(--err)',color:'#fff',borderRadius:10,padding:'6px 12px',fontSize:13,fontWeight:700,textAlign:'center',lineHeight:1.3}}>
@@ -320,6 +286,23 @@ function TrongCa({data, setData, onBack, onDone}) {
                   {ACTS.map(a=>{
                     const cnt=v[a.k]||0; const has=cnt>0;
                     const blocked=oos&&a.k==='xuat';
+                    if(a.k==='nhap') return (
+                      <div key={a.k} style={{
+                        width:'100%',height:64,borderRadius:12,boxSizing:'border-box',
+                        background:has?a.bg:'var(--paper-2)',
+                        border:'1.5px solid '+(has?a.color:'transparent'),
+                        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'4px 6px'
+                      }}>
+                        <input type="number" inputMode="numeric"
+                          value={cnt===0?'':cnt} placeholder="0"
+                          onChange={e=>set(i,a.k,parseInt(e.target.value||'0',10)||0)}
+                          onFocus={e=>e.target.select()}
+                          style={{width:'100%',textAlign:'center',fontSize:20,fontWeight:800,
+                            border:0,background:'transparent',color:has?a.ink:'var(--line-2)',
+                            lineHeight:1,padding:0,outline:'none'}}/>
+                        <div style={{fontSize:10,fontWeight:700,marginTop:4,textTransform:'uppercase',letterSpacing:.5,color:has?a.ink:'var(--muted)'}}>{a.label}</div>
+                      </div>
+                    );
                     return (
                       <div key={a.k} style={{position:'relative'}}>
                         <button onClick={()=>!blocked&&upd(i,a.k,+1)} style={{
@@ -359,30 +342,14 @@ function CuoiCa({data, setData, onBack, onDone}) {
   const upd = (i,val) => {
     const ps=[...data.products]; ps[i]={...ps[i],cuoi_thuc:val}; setData({...data,products:ps});
   };
-
-  // Pre-fill cuoi_thuc = predicted for any product not yet set
-  React.useEffect(()=>{
-    const ps=data.products.map(v=>{
-      if(v.cuoi_thuc===undefined||v.cuoi_thuc===''){
-        return {...v, cuoi_thuc: Math.max(0, computePredicted(v))};
-      }
-      return v;
-    });
-    setData({...data, products: ps});
-  }, []);
-
   const rows = PRODUCTS.map((p,i)=>{
     const v=data.products[i]||{};
-    const predicted=computePredicted(v);
-    const actual=v.cuoi_thuc;
-    const checked=actual!==undefined&&actual!=='';
-    const diff=checked?(Number(actual)-predicted):0;
+    const checked=v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='';
     const tieuThu=computeTieuThu(v);
-    return {p,i,v,predicted,actual,checked,diff,tieuThu};
+    return {p,i,v,checked,tieuThu};
   });
-  const totalRev  = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
-  const lechCount = rows.filter(r=>r.checked&&r.diff!==0).length;
-  const allChecked= rows.every(r=>r.checked);
+  const doneCount = rows.filter(r=>r.checked).length;
+  const allDone   = doneCount===rows.length;
   return (
     <div className="screen">
       <div className="app-bar">
@@ -390,71 +357,46 @@ function CuoiCa({data, setData, onBack, onDone}) {
           <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'var(--paper-2)',fontSize:22}}>‹</button>
           <div style={{flex:1}}>
             <div className="h-section">Bước 4 · Cuối ca</div>
-            <h1 style={{fontSize:18,marginTop:2}}>Đối chiếu tồn cuối</h1>
+            <h1 style={{fontSize:18,marginTop:2}}>Đếm tồn cuối ca</h1>
           </div>
-          <InfoBtn light text={"App đã điền sẵn số dự kiến từ dữ liệu trong ca.\n\nNếu đếm thực tế khác → sửa số đó.\nCó lệch → quay lại Trong ca chỉnh rồi mở lại Cuối ca."}/>
+          <div className="chip chip-accent">{doneCount}/{rows.length}</div>
         </div>
       </div>
       <div className="scroll-area" style={{padding:'12px 14px 24px'}}>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
-          {rows.map(r=>{
-            const ok=r.checked&&r.diff===0; const lech=r.checked&&r.diff!==0;
-            return (
-              <div key={r.i} className="m-card" style={{
-                padding:12,
-                borderColor:ok?'var(--ok)':lech?'var(--err)':'var(--line)',
-                background:ok?'var(--ok-soft)':lech?'var(--err-soft)':'var(--card)',
-                borderWidth:r.checked?1.5:1
-              }}>
-                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
-                  <span style={{fontSize:22}}>{r.p.emoji}</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:700,lineHeight:1.2}}>{r.p.short}</div>
+          {rows.map(r=>(
+            <div key={r.i} className="m-card" style={{
+              padding:12,
+              borderColor:r.checked?'var(--ok)':'var(--line)',
+              borderWidth:r.checked?1.5:1
+            }}>
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                <span style={{fontSize:22}}>{r.p.emoji}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:700,lineHeight:1.2}}>{r.p.short}</div>
+                  {r.tieuThu!==null&&(
                     <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>
-                      {r.tieuThu!==null
-                        ?<>Tiêu thụ: <span className="t-num" style={{fontWeight:700,color:'var(--ink-2)'}}>{r.tieuThu}</span> · <span className="t-money">{fmt(r.tieuThu*r.p.gia)}</span></>
-                        :<>Theo dõi: {r.v.xuat||0} · {fmt((r.v.xuat||0)*r.p.gia)}</>
-                      }
+                      Đã bán: <span className="t-num" style={{fontWeight:700,color:'var(--ink-2)'}}>{r.tieuThu}</span> cái · <span className="t-money">{fmt(r.tieuThu*r.p.gia)}</span>
                     </div>
-                  </div>
-                  {ok&&<span className="chip chip-ok">✓</span>}
-                  {lech&&<span className="chip chip-err">{r.diff>0?`+${r.diff}`:r.diff}</span>}
+                  )}
                 </div>
-                <div style={{display:'flex',alignItems:'center',gap:10}}>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:10,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700,marginBottom:4}}>Dự kiến</div>
-                    <div className="t-num" style={{fontSize:20,fontWeight:800,color:'var(--ink-2)'}}>{r.predicted}</div>
-                  </div>
-                  <div style={{flex:1.4}}>
-                    <div style={{fontSize:10,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700,marginBottom:4}}>Đếm thực tế</div>
-                    <input className="field-input" type="number" inputMode="numeric"
-                      value={r.actual===undefined?'':r.actual} placeholder="—"
-                      onChange={e=>upd(r.i,e.target.value===''?undefined:(parseInt(e.target.value)||0))}
-                      onFocus={e=>e.target.select()}
-                      style={{height:48,fontSize:18,fontWeight:700,textAlign:'center'}}/>
-                  </div>
-                </div>
-                {lech&&<div style={{marginTop:8,fontSize:12,color:'var(--err)',fontWeight:600}}>⚠ Lệch {Math.abs(r.diff)} cái — kiểm tra lại</div>}
+                {r.checked&&<span className="chip chip-ok">✓</span>}
               </div>
-            );
-          })}
+              <div>
+                <div style={{fontSize:10,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700,marginBottom:4}}>Tồn cuối thực tế</div>
+                <input className="field-input" type="number" inputMode="numeric"
+                  value={r.v.cuoi_thuc===undefined?'':r.v.cuoi_thuc} placeholder="—"
+                  onChange={e=>upd(r.i,e.target.value===''?undefined:(parseInt(e.target.value)||0))}
+                  onFocus={e=>e.target.select()}
+                  style={{height:48,fontSize:18,fontWeight:700,textAlign:'center'}}/>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
       <div className="bottom-bar">
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,padding:'0 4px'}}>
-          <div>
-            <div style={{fontSize:10,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700}}>Doanh thu</div>
-            <div className="t-money" style={{fontSize:16,fontWeight:800}}>{fmt(totalRev)}</div>
-          </div>
-          <div style={{textAlign:'right'}}>
-            <div style={{fontSize:10,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700}}>Đối chiếu</div>
-            <div style={{fontSize:14,fontWeight:700,color:lechCount>0?'var(--err)':allChecked?'var(--ok)':'var(--muted)'}}>
-              {!allChecked?`${rows.filter(r=>r.checked).length}/${rows.length} đếm`:lechCount===0?'✓ Khớp tất cả':`⚠ Lệch ${lechCount}`}
-            </div>
-          </div>
-        </div>
-        <button className={`btn-primary ${allChecked&&lechCount===0?'is-ok':''}`} onClick={onDone}>
-          {lechCount===0?'✓ Khớp — sang đếm tiền':`⚠ ${lechCount} lệch — vẫn tiếp tục`}
+        <button className={`btn-primary ${allDone?'is-ok':''}`} onClick={onDone}>
+          {allDone?'✓ Xong — sang đếm tiền':'Tiếp tục →'}
         </button>
       </div>
     </div>
@@ -484,9 +426,6 @@ function Tien({mode, data, setData, onBack, onDone}) {
             <div className="h-section">{isCuoi?'Bước cuối · Tiền cuối ca':'Bước 2 · Đầu ca — Tiền mặt'}</div>
             <h1 style={{fontSize:18,marginTop:2}}>{isCuoi?'Đếm tiền cuối ca':'Đếm tiền đầu ca'}</h1>
           </div>
-          <InfoBtn light text={isCuoi
-            ?"Đếm toàn bộ tiền mặt trong két cuối ca.\n\nApp tự tính: Tiền đầu ca + Doanh thu − Chuyển khoản − Chi phí = Dự kiến.\nSo sánh với số đếm thực tế để ra lệch tiền."
-            :"Đếm toàn bộ tiền mặt có sẵn trong két lúc nhận ca.\n\nCuối ca app sẽ dùng số này để tính chênh lệch tiền mặt."}/>
         </div>
       </div>
       <div className="scroll-area" style={{padding:'10px 12px 24px'}}>
@@ -566,7 +505,6 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
   const totalCuoi = DENOMS.reduce((s,d)=>s+(data.tien_cuoi?.[d]||0)*d,0);
   const totalDau  = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
   const totalRev  = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
-  const lechCount = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''&&(Number(v.cuoi_thuc)-computePredicted(v))!==0).length;
   const expected  = totalDau+(totalRev-(data.dt_nh||0))-(data.chi_phi||0);
   const tienDiff  = totalCuoi-expected;
   const canSubmit = !submitting;
@@ -579,7 +517,6 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
             <div className="h-section">Bước cuối · Bàn giao</div>
             <h1 style={{fontSize:18,marginTop:2}}>Bàn giao ca</h1>
           </div>
-          <InfoBtn light text={"Cùng ca sau đối chiếu số liệu.\n\nCả hai ký tên xác nhận → bàn giao hoàn tất.\nSố tồn Cuối ca sẽ thành Đầu ca cho ca tiếp theo."}/>
         </div>
       </div>
       <div className="scroll-area" style={{padding:'14px 14px 24px'}}>
@@ -597,7 +534,6 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
               <span style={{color:tienDiff===0?'var(--ok)':'var(--err)'}}>{tienDiff===0?'✓ Tiền khớp':tienDiff>0?'⚠ Thừa':'⚠ Thiếu'}</span>
               <span className="t-money" style={{color:tienDiff===0?'var(--ok)':'var(--err)'}}>{tienDiff===0?'0 ₫':(tienDiff>0?'+':'')+fmt(tienDiff)}</span>
             </div>
-            {lechCount>0&&<div style={{padding:'8px 10px',borderRadius:8,background:'var(--err-soft)',color:'var(--err)',fontWeight:700,fontSize:13}}>⚠ {lechCount} sản phẩm bị lệch tồn</div>}
           </div>
         </div>
         <div className="m-card" style={{padding:14,marginBottom:14}}>
@@ -622,21 +558,20 @@ function Hub({data, setData, setScreen}) {
   const tienDauTotal= DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
   const hangDone   = data.dau_ca_done;
   const tienDauDone= tienDauTotal>0;
-  const trongActive= data.products.some(v=>(v.xuat||0)>0);
+  const trongActive= data.products.some(v=>(v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)>0);
   const cuoiDone   = data.products.every(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='');
   const totalRev   = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
-  const lechCount  = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''&&(Number(v.cuoi_thuc)-computePredicted(v))!==0).length;
-  const totalSold  = data.products.reduce((s,v)=>s+Math.max(0,(v.xuat||0)-(v.hu||0)-(v.km||0)),0);
-  const filledCount= data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)>0).length;
+  const filledCount= data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0).length;
+  const cuoiCount  = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='').length;
   const tiles = [
     {key:'dau',     step:1,title:'Kiểm hàng đầu ca',  icon:'📦',done:hangDone,   enabled:true,
-     sub:hangDone?`${filledCount}/11 sản phẩm đã đếm`:'Đếm tồn hàng 3 khu vực'},
+     sub:hangDone?`${filledCount}/${PRODUCTS.length} sản phẩm đã đếm`:'Đếm tồn hàng đầu ca'},
     {key:'tien-dau',step:2,title:'Đếm tiền đầu ca',  icon:'💵',done:tienDauDone,enabled:true,
      sub:tienDauDone?`Tổng ${fmt(tienDauTotal)}`:'Đếm tiền mặt tại két'},
     {key:'trong',   step:3,title:'Trong ca',          icon:'🛒',active:trongActive,done:false,enabled:true,
-     sub:trongActive?`Đã bán ${totalSold} cái · ${fmt(totalRev)}`:'Bấm + mỗi lần bán'},
-    {key:'cuoi',    step:4,title:'Cuối ca',            icon:'🔍',done:cuoiDone&&lechCount===0,warn:cuoiDone&&lechCount>0,enabled:true,
-     sub:cuoiDone?(lechCount===0?'✓ Khớp tất cả':`⚠ Lệch ${lechCount}`):'Đếm thực tế → đối chiếu'},
+     sub:trongActive?`Đang theo dõi · ${fmt(totalRev)}`:'Bấm + mỗi lần bán / nhập / hư'},
+    {key:'cuoi',    step:4,title:'Cuối ca',            icon:'🔍',done:cuoiDone,enabled:true,
+     sub:cuoiDone?`✓ Đã đếm ${cuoiCount}/${PRODUCTS.length}`:`Đã đếm ${cuoiCount}/${PRODUCTS.length}`},
   ];
   return (
     <div className="screen">
@@ -646,16 +581,11 @@ function Hub({data, setData, setScreen}) {
             <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>{data.ngay} · {data.vi_tri||'Chưa mở ca'}</div>
             <h1 style={{color:'#fff',fontSize:19,marginTop:2}}>{data.ten?`Ca của ${data.ten}`:'Kiểm kê ca'}</h1>
           </div>
-          <InfoBtn text={"Quy trình một ca:\n\n1. Kiểm hàng đầu ca — đếm tồn 3 khu vực\n2. Đếm tiền đầu ca — đếm tiền trong két\n3. Trong ca — tap + mỗi lần bán / nhập / hư / KM\n4. Cuối ca — đếm thực tế, app báo lệch\n5. Đếm tiền cuối ca → Bàn giao ký tên"}/>
         </div>
         <div style={{marginTop:14,padding:'12px 14px',background:'rgba(255,255,255,.08)',borderRadius:'var(--r)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div>
-            <div style={{fontSize:11,opacity:.6,letterSpacing:1,textTransform:'uppercase',fontWeight:600}}>Doanh thu hàng</div>
+            <div style={{fontSize:11,opacity:.6,letterSpacing:1,textTransform:'uppercase',fontWeight:600}}>Doanh thu dự kiến</div>
             <div className="t-money" style={{fontSize:24,fontWeight:800,marginTop:2,color:'#fff'}}>{fmt(totalRev)}</div>
-          </div>
-          <div style={{textAlign:'right'}}>
-            <div style={{fontSize:11,opacity:.6,letterSpacing:1,textTransform:'uppercase',fontWeight:600}}>Đã bán</div>
-            <div className="t-num" style={{fontSize:20,fontWeight:700,marginTop:2,color:'#fff'}}>{totalSold} cái</div>
           </div>
         </div>
       </div>
@@ -712,6 +642,12 @@ function Hub({data, setData, setScreen}) {
         <div style={{marginTop:14}}>
           <button className="btn-ghost" style={{height:60}} onClick={()=>setScreen('tien-cuoi')}>
             💵 Đếm tiền cuối ca &amp; bàn giao →
+          </button>
+        </div>
+        <div style={{marginTop:10}}>
+          <button className="btn-ghost" style={{height:48,color:'var(--err)',borderColor:'var(--err-soft)'}}
+            onClick={()=>{ if(window.confirm('Xoá toàn bộ dữ liệu ca này và bắt đầu lại?')) { localStorage.removeItem(STORAGE_KEY); setData(INIT()); }}}>
+            🗑 Xoá dữ liệu / Làm ca mới
           </button>
         </div>
       </div>
