@@ -176,27 +176,41 @@ function DauCa({data, setData, onBack, onDone}) {
             const v=data.products[i]||{};
             const total=(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0);
             return (
-              <div key={i} className="m-card" style={{padding:'8px 10px 8px',
-                borderColor:total>0?'var(--ok)':'var(--line)',borderWidth:total>0?1.5:1}}>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-                  <span style={{fontSize:18,lineHeight:1}}>{p.emoji}</span>
+              <div key={i} className="m-card" style={{padding:'10px 10px 8px',
+                border:(total>0?'2px solid var(--ok)':'2px solid transparent')}}>
+                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                  <span style={{fontSize:22,lineHeight:1}}>{p.emoji}</span>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:700,lineHeight:1.2}}>{p.short}</div>
-                    <div style={{fontSize:11,color:'var(--muted)'}}>{fmt(p.gia)}</div>
+                    <div style={{fontSize:14,fontWeight:700,lineHeight:1.15}}>{p.short}</div>
+                    <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{fmt(p.gia)}</div>
                   </div>
-                  <div className="t-num" style={{fontSize:14,fontWeight:800,color:total>0?'var(--ok)':'var(--line-2)',minWidth:28,textAlign:'right'}}>
-                    {total>0?`∑${total}`:'—'}
+                  <div style={{fontSize:11,fontWeight:600,padding:'4px 8px',borderRadius:8,
+                    color:total>0?'var(--ok)':'var(--muted)',
+                    background:total>0?'var(--ok-soft)':'var(--paper-2)'}}>
+                    ∑ <span className="t-num" style={{fontSize:13,fontWeight:800}}>{total||'—'}</span>
                   </div>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:4}}>
-                  {DAU_ZONES.map(z=>(
-                    <div key={z.k}>
-                      <div style={{fontSize:9,fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:2,letterSpacing:.3,textTransform:'uppercase'}}>
-                        {z.icon} {z.label}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
+                  {DAU_ZONES.map(z=>{
+                    const cnt=v[z.k]||0; const has=cnt>0;
+                    return (
+                      <div key={z.k} style={{
+                        height:64,borderRadius:12,boxSizing:'border-box',
+                        background:has?'var(--ok-soft)':'var(--paper-2)',
+                        border:'1.5px solid '+(has?'var(--ok)':'transparent'),
+                        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'4px 6px'
+                      }}>
+                        <input type="number" inputMode="numeric"
+                          value={cnt===0?'':cnt} placeholder="0"
+                          onChange={e=>upd(i,z.k,parseInt(e.target.value||'0',10)||0)}
+                          onFocus={e=>e.target.select()}
+                          style={{width:'100%',textAlign:'center',fontSize:20,fontWeight:800,
+                            border:0,background:'transparent',color:has?'var(--ok)':'var(--line-2)',
+                            lineHeight:1,padding:0,outline:'none'}}/>
+                        <div style={{fontSize:10,fontWeight:700,marginTop:4,textTransform:'uppercase',letterSpacing:.5,color:has?'var(--ok)':'var(--muted)'}}>{z.label}</div>
                       </div>
-                      <Stepper value={v[z.k]||0} onChange={n=>upd(i,z.k,n)} size="xs"/>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
