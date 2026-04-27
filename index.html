@@ -215,8 +215,9 @@ function TrongCa({data, setData, onBack, onDone}) {
   const upd = (i,k,d) => {
     const ps=[...data.products]; ps[i]={...ps[i],[k]:Math.max(0,(ps[i]?.[k]||0)+d)}; setData({...data,products:ps});
   };
-  const totalRev  = data.products.reduce((s,v,i)=>s+(v.xuat||0)*PRODUCTS[i].gia,0);
-  const totalSold = data.products.reduce((s,v)=>s+(v.xuat||0),0);
+  const totalRev    = data.products.reduce((s,v,i)=>s+(v.xuat||0)*PRODUCTS[i].gia,0);
+  const totalSold   = data.products.reduce((s,v)=>s+(v.xuat||0),0);
+  const outOfStockN = data.products.filter((v,i)=>{const ton=computePredicted(v); return ton<=0;}).length;
   return (
     <div className="screen">
       <div className="app-bar" style={{background:'var(--ink)',borderBottom:0,color:'#fff'}}>
@@ -234,6 +235,12 @@ function TrongCa({data, setData, onBack, onDone}) {
               {totalSold} cái · <span className="t-money">{fmt(totalRev)}</span>
             </div>
           </div>
+          {outOfStockN>0&&(
+            <div style={{background:'var(--err)',color:'#fff',borderRadius:10,padding:'6px 12px',fontSize:13,fontWeight:700,textAlign:'center',lineHeight:1.3}}>
+              <div style={{fontSize:18}}>⚠️</div>
+              <div>{outOfStockN} hết hàng</div>
+            </div>
+          )}
         </div>
       </div>
       <div className="scroll-area" style={{padding:'10px 10px 24px'}}>
@@ -241,35 +248,48 @@ function TrongCa({data, setData, onBack, onDone}) {
           {PRODUCTS.map((p,i)=>{
             const v=data.products[i]||{};
             const ton=computePredicted(v);
+            const oos=ton<=0;
             return (
-              <div key={i} className="m-card" style={{padding:'10px 10px 8px'}}>
+              <div key={i} className="m-card" style={{padding:'10px 10px 8px',
+                border:oos?'2px solid var(--err)':'2px solid transparent',
+                background:oos?'#fff5f5':'var(--paper)'}}>
                 <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
                   <span style={{fontSize:22,lineHeight:1}}>{p.emoji}</span>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:14,fontWeight:700,lineHeight:1.15}}>{p.short}</div>
                     <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{fmt(p.gia)}</div>
                   </div>
-                  <div style={{fontSize:11,fontWeight:600,padding:'4px 8px',borderRadius:8,
-                    color:ton<=2?'var(--err)':ton<=5?'var(--warn)':'var(--muted)',
-                    background:ton<=2?'var(--err-soft)':'var(--paper-2)'}}>
-                    Còn ~<span className="t-num" style={{fontSize:13,fontWeight:800}}>{ton}</span>
-                  </div>
+                  {oos
+                    ? <div style={{fontSize:12,fontWeight:800,padding:'5px 10px',borderRadius:8,color:'#fff',background:'var(--err)',letterSpacing:.5}}>
+                        HẾT HÀNG
+                      </div>
+                    : <div style={{fontSize:11,fontWeight:600,padding:'4px 8px',borderRadius:8,
+                        color:ton<=2?'var(--err)':ton<=5?'var(--warn)':'var(--muted)',
+                        background:ton<=2?'var(--err-soft)':'var(--paper-2)'}}>
+                        Còn ~<span className="t-num" style={{fontSize:13,fontWeight:800}}>{ton}</span>
+                      </div>
+                  }
                 </div>
+                {oos&&<div style={{marginBottom:8,padding:'6px 10px',background:'var(--err-soft)',borderRadius:8,fontSize:12,color:'var(--err)',fontWeight:600}}>
+                  ⚠ Cần nhập hàng trước khi ghi xuất
+                </div>}
                 <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
                   {ACTS.map(a=>{
                     const cnt=v[a.k]||0; const has=cnt>0;
+                    const blocked=oos&&a.k==='xuat';
                     return (
                       <div key={a.k} style={{position:'relative'}}>
-                        <button onClick={()=>upd(i,a.k,+1)} style={{
-                          width:'100%',height:64,borderRadius:12,cursor:'pointer',
-                          background:has?a.bg:'var(--paper-2)',
-                          border:'1.5px solid '+(has?a.color:'transparent'),
-                          display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'4px 2px'
+                        <button onClick={()=>!blocked&&upd(i,a.k,+1)} style={{
+                          width:'100%',height:64,borderRadius:12,cursor:blocked?'not-allowed':'pointer',
+                          background:blocked?'var(--paper-2)':has?a.bg:'var(--paper-2)',
+                          border:'1.5px solid '+(blocked?'var(--line-2)':has?a.color:'transparent'),
+                          display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'4px 2px',
+                          opacity:blocked?.45:1
                         }}>
-                          <div className="t-num" style={{fontSize:22,fontWeight:800,lineHeight:1,color:has?a.ink:'var(--line-2)'}}>{cnt>0?cnt:'+'}</div>
-                          <div style={{fontSize:10,fontWeight:700,marginTop:4,textTransform:'uppercase',letterSpacing:.5,color:has?a.ink:'var(--muted)'}}>{a.label}</div>
+                          <div className="t-num" style={{fontSize:22,fontWeight:800,lineHeight:1,color:blocked?'var(--line-2)':has?a.ink:'var(--line-2)'}}>{cnt>0?cnt:'+'}</div>
+                          <div style={{fontSize:10,fontWeight:700,marginTop:4,textTransform:'uppercase',letterSpacing:.5,color:blocked?'var(--line-2)':has?a.ink:'var(--muted)'}}>{a.label}</div>
                         </button>
-                        {has&&<button onClick={e=>{e.stopPropagation();upd(i,a.k,-1)}} style={{
+                        {has&&!blocked&&<button onClick={e=>{e.stopPropagation();upd(i,a.k,-1)}} style={{
                           position:'absolute',top:-4,right:-4,width:22,height:22,borderRadius:'50%',
                           background:'#fff',border:'1.5px solid '+a.color,color:a.color,
                           fontSize:16,fontWeight:700,lineHeight:1,padding:0,
