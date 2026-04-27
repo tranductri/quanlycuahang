@@ -553,6 +553,7 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
 
 /* ─── HUB ─── */
 function Hub({data, setData, setScreen}) {
+  const [tenInput, setTenInput] = useState(data.ten||'');
   const dauDone    = data.products.every(v=>v.dau_h1||v.dau_h2||v.dau_kho);
   const trongActive= data.products.some(v=>(v.xuat||0)>0);
   const cuoiDone   = data.products.every(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='');
@@ -596,7 +597,16 @@ function Hub({data, setData, setScreen}) {
                 <button key={loc} onClick={()=>setData({...data,vi_tri:loc})} style={{height:52,borderRadius:'var(--r)',fontWeight:600,border:'1.5px solid '+(data.vi_tri===loc?'var(--accent)':'var(--line)'),background:data.vi_tri===loc?'var(--accent-soft)':'#fff'}}>📍 {loc}</button>
               ))}
             </div>
-            <input className="field-input" placeholder="Tên của bạn…" value={data.ten} onChange={e=>setData({...data,ten:e.target.value})}/>
+            <input className="field-input" placeholder="Tên của bạn…"
+              value={tenInput}
+              onChange={e=>setTenInput(e.target.value)}
+              onKeyDown={e=>{ if(e.key==='Enter'&&tenInput.trim()&&data.vi_tri) setData({...data,ten:tenInput.trim()}); }}
+            />
+            <button className="btn-primary" style={{marginTop:10}}
+              disabled={!tenInput.trim()||!data.vi_tri}
+              onClick={()=>setData({...data,ten:tenInput.trim()})}>
+              Mở ca →
+            </button>
           </div>
         )}
         {data.ten&&(
