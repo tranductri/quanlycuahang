@@ -148,7 +148,10 @@ function InfoBtn({text, light}) {
             borderRadius:'var(--r-lg) var(--r-lg) 0 0',
             padding:'12px 20px 40px'
           }}>
-            <div style={{width:36,height:4,background:'var(--line)',borderRadius:2,margin:'0 auto 14px'}}/>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+              <div style={{width:36,height:4,background:'var(--line)',borderRadius:2}}/>
+              <button onClick={()=>setOpen(false)} style={{width:28,height:28,borderRadius:'50%',background:'var(--paper-2)',border:0,fontSize:16,color:'var(--muted)',cursor:'pointer',lineHeight:1}}>✕</button>
+            </div>
             <div style={{fontSize:14,color:'var(--ink-2)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{text}</div>
           </div>
         </div>
@@ -160,9 +163,9 @@ function InfoBtn({text, light}) {
 /* ─── STEPPER ─── */
 function Stepper({value, onChange, size='md'}) {
   const set = n => onChange(Math.max(0,n));
-  const h  = size==='lg'?72:size==='sm'?48:60;
-  const fs = size==='lg'?26:size==='sm'?18:22;
-  const bs = size==='lg'?32:size==='sm'?22:28;
+  const h  = size==='lg'?72:size==='sm'?48:size==='xs'?36:60;
+  const fs = size==='lg'?26:size==='sm'?18:size==='xs'?15:22;
+  const bs = size==='lg'?32:size==='sm'?22:size==='xs'?18:28;
   return (
     <div className="stepper" style={{height:h, gridTemplateColumns:`${h}px 1fr ${h}px`}}>
       <button onClick={()=>set(value-1)} disabled={value<=0} style={{fontSize:bs}}>−</button>
@@ -206,25 +209,25 @@ function DauCa({data, setData, onBack, onDone}) {
             const v=data.products[i]||{};
             const total=(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0);
             return (
-              <div key={i} className="m-card" style={{padding:'12px 12px 10px',
+              <div key={i} className="m-card" style={{padding:'8px 10px 8px',
                 borderColor:total>0?'var(--ok)':'var(--line)',borderWidth:total>0?1.5:1}}>
-                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
-                  <span style={{fontSize:20,lineHeight:1}}>{p.emoji}</span>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                  <span style={{fontSize:18,lineHeight:1}}>{p.emoji}</span>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:700,lineHeight:1.2}}>{p.short}</div>
-                    <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{fmt(p.gia)}</div>
+                    <div style={{fontSize:11,color:'var(--muted)'}}>{fmt(p.gia)}</div>
                   </div>
-                  <div className="t-num" style={{fontSize:15,fontWeight:800,color:total>0?'var(--ok)':'var(--line-2)'}}>
+                  <div className="t-num" style={{fontSize:14,fontWeight:800,color:total>0?'var(--ok)':'var(--line-2)',minWidth:28,textAlign:'right'}}>
                     {total>0?`∑${total}`:'—'}
                   </div>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6}}>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4}}>
                   {DAU_ZONES.map(z=>(
                     <div key={z.k}>
-                      <div style={{fontSize:10,fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:3,letterSpacing:.4}}>
+                      <div style={{fontSize:9,fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:2,letterSpacing:.3,textTransform:'uppercase'}}>
                         {z.icon} {z.label}
                       </div>
-                      <Stepper value={v[z.k]||0} onChange={n=>upd(i,z.k,n)} size="sm"/>
+                      <Stepper value={v[z.k]||0} onChange={n=>upd(i,z.k,n)} size="xs"/>
                     </div>
                   ))}
                 </div>
@@ -255,7 +258,7 @@ function TrongCa({data, setData, onBack, onDone}) {
     const ps=[...data.products]; ps[i]={...ps[i],[k]:Math.max(0,(ps[i]?.[k]||0)+d)}; setData({...data,products:ps});
   };
   const totalRev    = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
-  const totalSold   = data.products.reduce((s,v)=>s+(v.xuat||0),0);
+  const totalSold   = data.products.reduce((s,v)=>s+Math.max(0,(v.xuat||0)-(v.hu||0)-(v.km||0)),0);
   const outOfStockN = data.products.filter((v,i)=>{const ton=computePredicted(v); return ton<=0;}).length;
   return (
     <div className="screen">
@@ -566,7 +569,7 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
   const lechCount = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''&&(Number(v.cuoi_thuc)-computePredicted(v))!==0).length;
   const expected  = totalDau+(totalRev-(data.dt_nh||0))-(data.chi_phi||0);
   const tienDiff  = totalCuoi-expected;
-  const canSubmit = data.nguoi_giao&&data.nguoi_nhan&&!submitting;
+  const canSubmit = !submitting;
   return (
     <div className="screen">
       <div className="app-bar">
@@ -598,26 +601,15 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
           </div>
         </div>
         <div className="m-card" style={{padding:14,marginBottom:14}}>
-          <div className="h-section" style={{marginBottom:10}}>Hai bên xác nhận</div>
-          <div style={{display:'flex',flexDirection:'column',gap:12}}>
-            <div>
-              <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>✍️ Người giao ca (bạn)</label>
-              <input className="field-input" placeholder="Tên người giao…" value={data.nguoi_giao||''} onChange={e=>upd('nguoi_giao',e.target.value)} style={{height:48,fontSize:16}}/>
-            </div>
-            <div>
-              <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>🤝 Người nhận ca</label>
-              <input className="field-input" placeholder="Tên người nhận…" value={data.nguoi_nhan||''} onChange={e=>upd('nguoi_nhan',e.target.value)} style={{height:48,fontSize:16}}/>
-            </div>
-            <div>
-              <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>📝 Ghi chú (nếu có lệch)</label>
-              <textarea className="field-input" placeholder="Lý do lệch tiền/hàng…" value={data.ghi_chu||''} onChange={e=>upd('ghi_chu',e.target.value)} rows={3} style={{height:'auto',fontSize:14,padding:10,resize:'none'}}/>
-            </div>
+          <div>
+            <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>📝 Ghi chú (nếu có lệch)</label>
+            <textarea className="field-input" placeholder="Lý do lệch tiền/hàng…" value={data.ghi_chu||''} onChange={e=>upd('ghi_chu',e.target.value)} rows={3} style={{height:'auto',fontSize:14,padding:10,resize:'none'}}/>
           </div>
         </div>
       </div>
       <div className="bottom-bar">
         <button className="btn-primary is-ok" disabled={!canSubmit} onClick={onSubmit}>
-          {submitting?'⏳ Đang gửi…':canSubmit?'✓ Gửi báo cáo ca':'Cần đủ 2 chữ ký'}
+          {submitting?'⏳ Đang gửi…':'✓ Gửi báo cáo ca'}
         </button>
       </div>
     </div>
@@ -634,7 +626,7 @@ function Hub({data, setData, setScreen}) {
   const cuoiDone   = data.products.every(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='');
   const totalRev   = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
   const lechCount  = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''&&(Number(v.cuoi_thuc)-computePredicted(v))!==0).length;
-  const totalSold  = data.products.reduce((s,v)=>s+(v.xuat||0),0);
+  const totalSold  = data.products.reduce((s,v)=>s+Math.max(0,(v.xuat||0)-(v.hu||0)-(v.km||0)),0);
   const filledCount= data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)>0).length;
   const tiles = [
     {key:'dau',     step:1,title:'Kiểm hàng đầu ca',  icon:'📦',done:hangDone,   enabled:true,
