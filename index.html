@@ -611,6 +611,7 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
 
 /* ─── HUB ─── */
 function Hub({data, setData, setScreen}) {
+  const [editing, setEditing] = useState(!(data.ten&&data.vi_tri));
   const tienDauTotal= DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
   const hangDone   = data.dau_ca_done;
   const tienDauDone= tienDauTotal>0;
@@ -637,24 +638,34 @@ function Hub({data, setData, setScreen}) {
             <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>{data.ngay} · {data.vi_tri||'Chưa mở ca'}</div>
             <h1 style={{color:'#fff',fontSize:19,marginTop:2}}>{data.ten?`Ca của ${data.ten}`:'Kiểm kê ca'}</h1>
           </div>
+          {!editing&&data.ten&&(
+            <button onClick={()=>setEditing(true)} style={{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,.15)',color:'#fff',fontSize:16,border:0,cursor:'pointer',flexShrink:0}}>✎</button>
+          )}
         </div>
       </div>
       <div className="scroll-area" style={{padding:'16px 14px 100px'}}>
-        <div className="m-card" style={{padding:14,marginBottom:14}}>
-          <div className="h-section" style={{marginBottom:10}}>Thông tin ca</div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
-            {['Quận 6','Bình Tân'].map(loc=>(
-              <button key={loc} onClick={()=>{ setData({...data,vi_tri:loc}); saveUser(data.ten,loc); }}
-                style={{height:52,borderRadius:'var(--r)',fontWeight:600,
-                  border:'1.5px solid '+(data.vi_tri===loc?'var(--accent)':'var(--line)'),
-                  background:data.vi_tri===loc?'var(--accent-soft)':'#fff'}}>📍 {loc}</button>
-            ))}
+        {editing&&(
+          <div className="m-card" style={{padding:14,marginBottom:14}}>
+            <div className="h-section" style={{marginBottom:10}}>Thông tin ca</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
+              {['Quận 6','Bình Tân'].map(loc=>(
+                <button key={loc} onClick={()=>{ setData({...data,vi_tri:loc}); saveUser(data.ten,loc); }}
+                  style={{height:52,borderRadius:'var(--r)',fontWeight:600,
+                    border:'1.5px solid '+(data.vi_tri===loc?'var(--accent)':'var(--line)'),
+                    background:data.vi_tri===loc?'var(--accent-soft)':'#fff'}}>📍 {loc}</button>
+              ))}
+            </div>
+            <input className="field-input" placeholder="Tên của bạn…"
+              value={data.ten||''}
+              onChange={e=>{ setData({...data,ten:e.target.value}); saveUser(e.target.value,data.vi_tri); }}
+            />
+            <button className="btn-primary" style={{marginTop:10}}
+              disabled={!data.ten?.trim()||!data.vi_tri}
+              onClick={()=>{ saveUser(data.ten,data.vi_tri); setEditing(false); }}>
+              Lưu thông tin
+            </button>
           </div>
-          <input className="field-input" placeholder="Tên của bạn…"
-            value={data.ten||''}
-            onChange={e=>{ setData({...data,ten:e.target.value}); saveUser(e.target.value,data.vi_tri); }}
-          />
-        </div>
+        )}
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           {tiles.map(t=>(
             <button key={t.key} onClick={()=>t.enabled&&setScreen(t.key)} disabled={!t.enabled} style={{
