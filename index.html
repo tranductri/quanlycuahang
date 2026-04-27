@@ -70,7 +70,7 @@
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState } = React;
+const { useState, useEffect } = React;
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxGinGbDS1Rb-wag5WLo_JejHQ8q-5ddgEPkKnsbpjHs0ZZ4nqpHaaqvznMqgptAr_NNw/exec';
 
@@ -663,6 +663,26 @@ function App() {
   const [screen,     setScreen]    = useState('hub');
   const [toast,      setToast]     = useState(null);
   const [submitting, setSubmitting]= useState(false);
+  const [hasUpdate,  setHasUpdate] = useState(false);
+
+  useEffect(()=>{
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.register('/quanlycuahang/sw.js').then(reg=>{
+      // Phát hiện SW mới cài xong
+      reg.addEventListener('updatefound', ()=>{
+        const sw = reg.installing;
+        sw.addEventListener('statechange', ()=>{
+          if (sw.state==='installed' && navigator.serviceWorker.controller) {
+            setHasUpdate(true);
+          }
+        });
+      });
+      // Kiểm tra cập nhật mỗi khi mở lại app
+      document.addEventListener('visibilitychange', ()=>{
+        if (document.visibilityState==='visible') reg.update();
+      });
+    });
+  }, []);
 
   const setData = d => {
     setDataRaw(d);
@@ -684,6 +704,14 @@ function App() {
 
   return (
     <div style={{height:'100%',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      {hasUpdate&&(
+        <div style={{flexShrink:0,background:'var(--ok)',color:'#fff',padding:'10px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,zIndex:300}}>
+          <span style={{fontSize:14,fontWeight:600}}>🔄 Có bản cập nhật mới</span>
+          <button onClick={()=>window.location.reload()} style={{background:'#fff',color:'var(--ok)',padding:'6px 16px',borderRadius:8,fontSize:13,fontWeight:700,border:0,cursor:'pointer',flexShrink:0}}>
+            Tải lại
+          </button>
+        </div>
+      )}
       {screen==='hub'       &&<Hub      data={data} setData={setData} setScreen={nav}/>}
       {screen==='dau'       &&<DauCa    data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>{ setData({...data, dau_ca_done:true}); nav('tien-dau'); }}/>}
       {screen==='trong'     &&<TrongCa  data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')}/>}
@@ -697,12 +725,6 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/quanlycuahang/sw.js');
-  });
-}
 </script>
 </body>
 </html>

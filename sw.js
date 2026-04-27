@@ -1,4 +1,4 @@
-const CACHE = 'kiem-ke-ca-v1';
+const CACHE = 'kiem-ke-ca-v3';
 
 const PRECACHE = [
   '/quanlycuahang/',
