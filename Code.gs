@@ -33,9 +33,10 @@ function doPost(e) {
     var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName(SHEET_CA);
 
-    // Tự xoá và tạo lại nếu số cột không khớp schema hiện tại
+    // Đổi tên sheet cũ thành backup nếu số cột không khớp schema hiện tại
     if (sheet && sheet.getLastColumn() !== buildHeaders().length) {
-      ss.deleteSheet(sheet);
+      var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmm');
+      sheet.setName(SHEET_CA + '_backup_' + stamp);
       sheet = null;
     }
 
