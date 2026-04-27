@@ -567,9 +567,9 @@ function Hub({data, setData, setScreen}) {
     :'Đếm tồn hàng + tiền đầu ca';
   const tiles = [
     {key:'dau',  step:1,title:'Đầu ca',  icon:'📥',done:dauDone,warn:data.dau_ca_done&&!tienDauTotal,enabled:true, sub:dauSub},
-    {key:'trong',step:2,title:'Trong ca',icon:'🛒',active:trongActive,done:false,enabled:dauDone,
+    {key:'trong',step:2,title:'Trong ca',icon:'🛒',active:trongActive,done:false,enabled:true,
      sub:trongActive?`Đã bán ${totalSold} cái · ${fmt(totalRev)}`:'Bấm + mỗi lần bán'},
-    {key:'cuoi', step:3,title:'Cuối ca', icon:'🔍',done:cuoiDone&&lechCount===0,warn:cuoiDone&&lechCount>0,enabled:trongActive,
+    {key:'cuoi', step:3,title:'Cuối ca', icon:'🔍',done:cuoiDone&&lechCount===0,warn:cuoiDone&&lechCount>0,enabled:true,
      sub:cuoiDone?(lechCount===0?'✓ Khớp tất cả':`⚠ Lệch ${lechCount}`):'Đếm thực tế → đối chiếu'},
   ];
   return (
@@ -643,7 +643,7 @@ function Hub({data, setData, setScreen}) {
           ))}
         </div>
         <div style={{marginTop:14}}>
-          <button disabled={!cuoiDone} className="btn-ghost" style={{height:60}} onClick={()=>cuoiDone&&setScreen('tien-cuoi')}>
+          <button className="btn-ghost" style={{height:60}} onClick={()=>setScreen('tien-cuoi')}>
             💵 Đếm tiền cuối ca &amp; bàn giao →
           </button>
         </div>
