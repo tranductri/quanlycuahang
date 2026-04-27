@@ -320,6 +320,18 @@ function CuoiCa({data, setData, onBack, onDone}) {
   const upd = (i,val) => {
     const ps=[...data.products]; ps[i]={...ps[i],cuoi_thuc:val}; setData({...data,products:ps});
   };
+
+  // Pre-fill cuoi_thuc = predicted for any product not yet set
+  React.useEffect(()=>{
+    const ps=data.products.map(v=>{
+      if(v.cuoi_thuc===undefined||v.cuoi_thuc===''){
+        return {...v, cuoi_thuc: Math.max(0, computePredicted(v))};
+      }
+      return v;
+    });
+    setData({...data, products: ps});
+  }, []);
+
   const rows = PRODUCTS.map((p,i)=>{
     const v=data.products[i]||{};
     const predicted=computePredicted(v);
@@ -342,7 +354,7 @@ function CuoiCa({data, setData, onBack, onDone}) {
           </div>
         </div>
         <div style={{marginTop:12,padding:'10px 12px',background:'var(--paper-2)',borderRadius:'var(--r)',fontSize:12,color:'var(--ink-2)',lineHeight:1.45}}>
-          Đếm tổng tồn thực tế (tủ hấp + kho). App tự so với dự kiến.
+          App đã điền sẵn số dự kiến. Nếu đếm thực tế khác → sửa số đó. Lệch → quay lại Trong ca chỉnh.
         </div>
       </div>
       <div className="scroll-area" style={{padding:'12px 14px 24px'}}>
@@ -398,8 +410,8 @@ function CuoiCa({data, setData, onBack, onDone}) {
             </div>
           </div>
         </div>
-        <button className={`btn-primary ${allChecked&&lechCount===0?'is-ok':''}`} disabled={!allChecked} onClick={onDone}>
-          {!allChecked?'Đếm hết để tiếp tục':lechCount===0?'✓ Khớp — sang đếm tiền':`⚠ ${lechCount} lệch — vẫn tiếp tục`}
+        <button className={`btn-primary ${allChecked&&lechCount===0?'is-ok':''}`} onClick={onDone}>
+          {lechCount===0?'✓ Khớp — sang đếm tiền':`⚠ ${lechCount} lệch — vẫn tiếp tục`}
         </button>
       </div>
     </div>
