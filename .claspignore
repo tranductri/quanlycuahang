@@ -1,4 +1,9 @@
 index.html
+sw.js
+manifest.json
+icon-192.png
+icon-512.png
+docs/**
 .gitignore
 .clasp.json
 .claspignore
