@@ -72,7 +72,7 @@
 <script type="text/babel">
 const { useState, useEffect } = React;
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzERKnyl2g_zyT3zseP_0kOaqjvzCrGKCT4BOkvcFdE36qulwGTgRJlWS0hVFAaxoRJjg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxriKPwCKfGKDhoKx0wxeveE8F1ot3ze_q2mQJaW5QHtZLNfI6QXpwAm4U0tbXfxFhXTA/exec';
 
 function productEmoji(ten) {
   if (ten.startsWith('Bánh bao')) return '🥟';
@@ -176,23 +176,6 @@ const saveUser = (ten, vi_tri) => {
   try { localStorage.setItem(USER_KEY, JSON.stringify({ten, vi_tri})); } catch {}
 };
 
-
-/* ─── STEPPER ─── */
-function Stepper({value, onChange, size='md'}) {
-  const set = n => onChange(Math.max(0,n));
-  const h  = size==='lg'?72:size==='sm'?48:size==='xs'?36:60;
-  const fs = size==='lg'?26:size==='sm'?18:size==='xs'?15:22;
-  const bs = size==='lg'?32:size==='sm'?22:size==='xs'?18:28;
-  return (
-    <div className="stepper" style={{height:h, gridTemplateColumns:`${h}px 1fr ${h}px`}}>
-      <button onClick={()=>set(value-1)} disabled={value<=0} style={{fontSize:bs}}>−</button>
-      <input type="number" inputMode="numeric" value={value===0?'':value} placeholder="0"
-        onChange={e=>set(parseInt(e.target.value||'0',10)||0)}
-        onFocus={e=>e.target.select()} style={{fontSize:fs}}/>
-      <button onClick={()=>set(value+1)} style={{fontSize:bs}}>+</button>
-    </div>
-  );
-}
 
 /* ─── ĐẦU CA ─── */
 const DAU_ZONES = [
@@ -320,7 +303,6 @@ function TrongCa({data, setData, onBack, onDone, products}) {
   const set = (idx,k,v) => {
     const ps=[...data.products]; ps[idx]={...(ps[idx]||{}),[k]:Math.max(0,v)}; setData({...data,products:ps});
   };
-  const totalTon    = products.reduce((s,p)=>s+Math.max(0,computePredicted(data.products[p.idx]||{})),0);
   const outOfStockN = products.filter(p=>computePredicted(data.products[p.idx]||{})<=0).length;
   return (
     <div className="screen">
@@ -751,10 +733,21 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting, products}) {
             color:'#fff',fontSize:12,fontWeight:600}}>⚠ Số tờ cất vượt quá số tờ trong két — kiểm tra lại</div>}
         </div>
 
-        <div className="m-card" style={{padding:14,marginBottom:14}}>
-          <div>
-            <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>📝 Ghi chú (nếu có lệch)</label>
-            <textarea className="field-input" placeholder="Lý do lệch tiền/hàng…" value={data.ghi_chu||''} onChange={e=>upd('ghi_chu',e.target.value)} rows={3} style={{height:'auto',fontSize:14,padding:10,resize:'none'}}/>
+        <div className="m-card" style={{padding:14,marginBottom:12}}>
+          <div className="h-section" style={{marginBottom:10}}>Bàn giao</div>
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            <div>
+              <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>👤 Người giao ca</label>
+              <input className="field-input" placeholder="Tên người giao…" value={data.nguoi_giao||''} onChange={e=>upd('nguoi_giao',e.target.value)} style={{height:48,fontSize:15}}/>
+            </div>
+            <div>
+              <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>👤 Người nhận ca</label>
+              <input className="field-input" placeholder="Tên người nhận…" value={data.nguoi_nhan||''} onChange={e=>upd('nguoi_nhan',e.target.value)} style={{height:48,fontSize:15}}/>
+            </div>
+            <div>
+              <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>📝 Ghi chú (nếu có lệch)</label>
+              <textarea className="field-input" placeholder="Lý do lệch tiền/hàng…" value={data.ghi_chu||''} onChange={e=>upd('ghi_chu',e.target.value)} rows={3} style={{height:'auto',fontSize:14,padding:10,resize:'none'}}/>
+            </div>
           </div>
         </div>
       </div>
@@ -777,7 +770,14 @@ function Hub({data, setData, setScreen, prevData, products}) {
   const tienDauTotal = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
   const tienCuoiTotal= DENOMS.reduce((s,d)=>s+(data.tien_cuoi?.[d]||0)*d,0);
   const hangDone    = data.dau_ca_done;
-  const dauLechCount= hangDone&&prevData&&products.length ? products.filter(p=>{ const v=data.products[p.idx]||{}; const pt=prevData[p.locIdx]?.cuoi_thuc; if(pt===undefined||pt==='') return false; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)!==Number(pt); }).length : 0;
+  const dauLechCount = hangDone && prevData && products.length
+    ? products.filter(p => {
+        const v  = data.products[p.idx]||{};
+        const pt = prevData[p.locIdx]?.cuoi_thuc;
+        if (pt === undefined || pt === '') return false;
+        return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0) !== Number(pt);
+      }).length
+    : 0;
   const tienDauDone = tienDauTotal>0;
   const tienCuoiDone= tienCuoiTotal>0;
   const trongActive = products.some(p=>{ const v=data.products[p.idx]||{}; return (v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)>0; });

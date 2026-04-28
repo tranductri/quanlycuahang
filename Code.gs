@@ -88,8 +88,8 @@ function getLastShift(vi_tri) {
     if (!sheet || sheet.getLastRow() < 2) return {success:false};
     var rows  = sheet.getDataRange().getValues();
     var last  = rows[rows.length - 1];
-    var products = locationProds.map(function(_, p) {
-      var cuoi = last[4 + p * 13 + 8];
+    var products = locationProds.map(function(prod, i) {
+      var cuoi = last[4 + i * 13 + 8];
       return {cuoi_thuc: (cuoi === '' || cuoi === null || cuoi === undefined) ? undefined : Number(cuoi)};
     });
     return {success:true, ngay:last[1], ten:last[3], products:products};
