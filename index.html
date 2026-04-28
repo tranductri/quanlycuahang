@@ -72,7 +72,7 @@
 <script type="text/babel">
 const { useState, useEffect } = React;
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzkkjtkLH80h-QzxUT822H5VpCikXWRVgbeifv2FUqnB-z7ubRVnSgxbAWSdSWCDprEvA/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzERKnyl2g_zyT3zseP_0kOaqjvzCrGKCT4BOkvcFdE36qulwGTgRJlWS0hVFAaxoRJjg/exec';
 
 function productEmoji(ten) {
   if (ten.startsWith('Bánh bao')) return '🥟';
@@ -151,11 +151,11 @@ function fetchAllProducts() {
     });
 }
 
-// Đọc ca trước từ ca_lam_viec qua gviz — nProducts = tổng số sản phẩm trong schema
+// Đọc ca trước từ sheet theo địa điểm qua gviz — nProducts = số sản phẩm của địa điểm đó
 function fetchLastShift(vi_tri, nProducts) {
-  var tq  = "select * where C = '" + vi_tri.replace(/'/g, "\\'") + "'";
+  var sheetName = vi_tri === 'Bình Tân' ? 'binh_tan' : 'quan_6';
   var url = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID
-          + '/gviz/tq?tqx=out:json&tq=' + encodeURIComponent(tq) + '&sheet=ca_lam_viec';
+          + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheetName);
   return fetch(url)
     .then(function(r) { return r.text(); })
     .then(function(text) {
@@ -211,7 +211,7 @@ function DauCa({data, setData, onBack, onDone, prevData, products}) {
 
   const lechCount = prevData ? products.filter(p=>{
     const v=data.products[p.idx]||{};
-    const pt=prevData[p.idx]?.cuoi_thuc; if(pt===undefined||pt===null) return false;
+    const pt=prevData[p.locIdx]?.cuoi_thuc; if(pt===undefined||pt===null) return false;
     const total=(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0);
     return total!==Number(pt);
   }).length : 0;
@@ -235,7 +235,7 @@ function DauCa({data, setData, onBack, onDone, prevData, products}) {
           {products.map(p=>{
             const v=data.products[p.idx]||{};
             const total=(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0);
-            const pt=prevData?.[p.idx]?.cuoi_thuc;
+            const pt=prevData?.[p.locIdx]?.cuoi_thuc;
             const hasPrev=pt!==undefined&&pt!==null&&pt!=='';
             const lech=hasPrev?total-Number(pt):null;
             const isLech=lech!==null&&lech!==0;
@@ -777,7 +777,7 @@ function Hub({data, setData, setScreen, prevData, products}) {
   const tienDauTotal = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
   const tienCuoiTotal= DENOMS.reduce((s,d)=>s+(data.tien_cuoi?.[d]||0)*d,0);
   const hangDone    = data.dau_ca_done;
-  const dauLechCount= hangDone&&prevData&&products.length ? products.filter(p=>{ const v=data.products[p.idx]||{}; const pt=prevData[p.idx]?.cuoi_thuc; if(pt===undefined||pt==='') return false; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)!==Number(pt); }).length : 0;
+  const dauLechCount= hangDone&&prevData&&products.length ? products.filter(p=>{ const v=data.products[p.idx]||{}; const pt=prevData[p.locIdx]?.cuoi_thuc; if(pt===undefined||pt==='') return false; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)!==Number(pt); }).length : 0;
   const tienDauDone = tienDauTotal>0;
   const tienCuoiDone= tienCuoiTotal>0;
   const trongActive = products.some(p=>{ const v=data.products[p.idx]||{}; return (v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)>0; });
@@ -939,15 +939,20 @@ function App() {
   // Fetch previous shift when location + allProducts are ready
   useEffect(()=>{
     if (!data.vi_tri || !allProducts) return;
-    fetchLastShift(data.vi_tri, allProducts.length)
+    const nProducts = allProducts.filter(p=>
+      data.vi_tri==='Bình Tân' ? p.binh_tan : data.vi_tri==='Quận 6' ? p.quan_6 : false
+    ).length;
+    if (!nProducts) return;
+    fetchLastShift(data.vi_tri, nProducts)
       .then(res=>{ if (res.success && res.products) setPrevData(res.products); })
       .catch(()=>{});
   }, [data.vi_tri, allProducts]);
 
-  // Products visible at current location (with allProducts index)
+  // Products visible at current location — idx = allProducts position, locIdx = position in filtered list
   const locationProducts = allProducts
     ? allProducts.map((p,i)=>({...p,idx:i})).filter(p=>
         data.vi_tri==='Bình Tân' ? p.binh_tan : data.vi_tri==='Quận 6' ? p.quan_6 : false)
+      .map((p,locIdx)=>({...p,locIdx}))
     : [];
 
   const setData = d => {
