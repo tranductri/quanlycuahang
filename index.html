@@ -797,13 +797,6 @@ function Hub({data, setData, setScreen, prevData, products}) {
     if (next) setData(next);
   };
 
-  const [deleting, setDeleting] = useState(null); // { key, count }
-  useEffect(()=>{
-    if (!deleting) return;
-    if (deleting.count === 0) { resetStep(deleting.key); setDeleting(null); return; }
-    const t = setTimeout(()=>setDeleting(d=>d?{...d,count:d.count-1}:null), 1000);
-    return ()=>clearTimeout(t);
-  }, [deleting]);
 
   const sections = [
     { label:'Đầu ca', tiles:[
@@ -872,10 +865,8 @@ function Hub({data, setData, setScreen, prevData, products}) {
             <div key={s.label}>
               <div className="h-section" style={{marginBottom:8}}>{s.label}</div>
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {s.tiles.map(t=>{
-                  const isDel = deleting?.key===t.resetKey;
-                  return (
-                  <div key={t.key} onClick={()=>{ setDeleting(null); setScreen(t.key); }} style={{
+                {s.tiles.map(t=>(
+                  <div key={t.key} onClick={()=>setScreen(t.key)} style={{
                     display:'flex',alignItems:'center',gap:14,padding:'14px 16px',background:'var(--card)',borderRadius:'var(--r-lg)',
                     border:'1.5px solid '+(t.warn?'var(--warn)':t.done?'var(--ok)':'var(--line)'),
                     cursor:'pointer',userSelect:'none'
@@ -892,21 +883,17 @@ function Hub({data, setData, setScreen, prevData, products}) {
                       <div style={{fontSize:12,color:t.warn?'var(--warn)':'var(--muted)',marginTop:1}}>{t.sub}</div>
                     </div>
                     {t.hasData ? (
-                      <button onClick={e=>{ e.stopPropagation(); setDeleting(isDel?null:{key:t.resetKey,count:3}); }}
+                      <button onClick={e=>{ e.stopPropagation(); if(window.confirm(`Xoá dữ liệu "${t.title}"?`)) resetStep(t.resetKey); }}
                         style={{width:36,height:36,borderRadius:10,flexShrink:0,border:0,cursor:'pointer',
-                          background:isDel?'var(--err)':'var(--err-soft)',
-                          color:isDel?'#fff':'var(--err)',
-                          fontSize:isDel?15:17,fontWeight:800,
-                          display:'flex',alignItems:'center',justifyContent:'center',
-                          transition:'background .15s'}}>
-                        {isDel ? deleting.count : '🗑'}
+                          background:'var(--err-soft)',color:'var(--err)',fontSize:17,fontWeight:800,
+                          display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        🗑
                       </button>
                     ) : (
                       <span style={{color:'var(--muted)',fontSize:20}}>›</span>
                     )}
                   </div>
-                  );
-                })}
+                ))}
               </div>
             </div>
           ))}
