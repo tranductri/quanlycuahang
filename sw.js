@@ -1,4 +1,4 @@
-const CACHE = 'kiem-ke-ca-v19';
+const CACHE = 'kiem-ke-ca-v20';
 
 const PRECACHE = [
   '/quanlycuahang/',
@@ -32,8 +32,8 @@ self.addEventListener('message', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Never intercept GAS API calls — must hit the network
-  if (e.request.url.includes('script.google.com')) return;
+  // Never intercept GAS or Sheets API calls — must hit the network
+  if (e.request.url.includes('script.google.com') || e.request.url.includes('docs.google.com')) return;
 
   // Cache-first for everything else (app shell + CDN bundles)
   e.respondWith(

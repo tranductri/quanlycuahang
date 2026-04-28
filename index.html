@@ -127,17 +127,36 @@ const INIT = () => {
   };
 };
 
-const STORAGE_KEY = 'ca_v2';
-const USER_KEY    = 'ca_user';
-const prevKey     = loc => `ca_prev_${loc}`;
+const STORAGE_KEY    = 'ca_v2';
+const USER_KEY       = 'ca_user';
+const prevKey        = loc => `ca_prev_${loc}`;
+const SPREADSHEET_ID = '1EfEAvuYPyf3GWVbi7egfR6SI3riNKPsCiVW0OFZLpg8';
 
-function jsonp(url) {
-  return new Promise((resolve, reject) => {
-    const cb = '__gas_' + Date.now();
-    window[cb] = data => { cleanup(); resolve(data); };
-    const s = document.createElement('script');
-    s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
-    s.onerror = () => { cleanup(); reject(new Error('jsonp failed')); };
+// Dùng Google Sheets gviz/tq JSONP — không qua GAS echo redirect, không bị ORB/CORS
+function fetchLastShift(vi_tri) {
+  return new Promise(function(resolve, reject) {
+    var cb  = '__gviz_' + Date.now();
+    var tq  = "select * where C = '" + vi_tri.replace(/'/g, "\\'") + "'";
+    var url = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID
+            + '/gviz/tq?tqx=' + encodeURIComponent('out:json,responseHandler:' + cb)
+            + '&tq='          + encodeURIComponent(tq)
+            + '&sheet=ca_lam_viec';
+    window[cb] = function(resp) {
+      cleanup();
+      if (resp.status === 'ok' && resp.table && resp.table.rows.length > 0) {
+        var row = resp.table.rows[resp.table.rows.length - 1].c;
+        var products = PRODUCTS.map(function(_, p) {
+          var cell = row[4 + p * 13 + 8];
+          return {cuoi_thuc: (cell && cell.v !== null && cell.v !== undefined) ? Number(cell.v) : undefined};
+        });
+        resolve({success: true, products: products});
+      } else {
+        resolve({success: false});
+      }
+    };
+    var s = document.createElement('script');
+    s.src = url;
+    s.onerror = function() { cleanup(); reject(new Error('gviz failed')); };
     document.head.appendChild(s);
     function cleanup() { delete window[cb]; if (s.parentNode) s.parentNode.removeChild(s); }
   });
@@ -184,14 +203,14 @@ function DauCa({data, setData, onBack, onDone}) {
 
   React.useEffect(()=>{
     if (!data.vi_tri) return;
-    jsonp(GAS_URL + '?action=lastShift&vi_tri=' + encodeURIComponent(data.vi_tri))
-      .then(res=>{
+    fetchLastShift(data.vi_tri)
+      .then(function(res) {
         if (res.success && res.products) {
           setPrevData(res.products);
           try { localStorage.setItem(prevKey(data.vi_tri), JSON.stringify(res.products)); } catch {}
         }
       })
-      .catch(()=>{});
+      .catch(function(){});
   }, [data.vi_tri]);
 
   const lechCount = prevData ? data.products.filter((v,i)=>{
