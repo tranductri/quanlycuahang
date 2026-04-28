@@ -992,11 +992,11 @@ function App() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      await fetch(GAS_URL, {method:'POST', body:JSON.stringify(data)});
+      await fetch(GAS_URL, {method:'POST', body:JSON.stringify(data), mode:'no-cors'});
       showToast('✓ Đã gửi báo cáo ca!', 'ok');
       setTimeout(()=>{ localStorage.removeItem(STORAGE_KEY); setDataRaw(INIT()); setScreen('hub'); }, 2000);
     } catch(e) {
-      showToast('❌ Lỗi: '+e.message, 'err');
+      showToast('❌ Lỗi mạng — kiểm tra kết nối', 'err');
     } finally { setSubmitting(false); }
   };
 
