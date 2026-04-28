@@ -1,19 +1,46 @@
 var SHEET_CA = 'ca_lam_viec';
 var SPREADSHEET_ID = '1EfEAvuYPyf3GWVbi7egfR6SI3riNKPsCiVW0OFZLpg8';
 
-var PRODUCTS = [
-  {ten:'Bánh bao xúc xích phomai',       gia:20000},
-  {ten:'Bánh bao xá xíu phomai',         gia:22000},
-  {ten:'Bánh bao gà nấm phomai',         gia:28000},
-  {ten:'Bánh bao bò phomai',             gia:25000},
-  {ten:'Bánh bao thịt trứng cút',        gia:20000},
-  {ten:'Bánh bao hình thú',              gia:15000},
-  {ten:'Bánh bao kimsa',                 gia:15000},
-  {ten:'Bánh bao lava matcha',           gia:15000},
-  {ten:'Cơm nắm xúc xích sốt teriyaki', gia:15000},
-  {ten:'Cơm nắm xúc xích phomai',       gia:17000},
-  {ten:'Yaourt',                          gia:10000},
-];
+var PRODUCTS = getSanPhamProducts(); // dynamic — đọc từ sheet san_pham
+
+function getSanPhamProducts() {
+  try {
+    var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('san_pham');
+    if (!sheet || sheet.getLastRow() < 2) return fallbackProducts();
+    var rows  = sheet.getDataRange().getValues();
+    var result = [];
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0]) result.push({ten: String(rows[i][0]), gia: Number(rows[i][1])||0});
+    }
+    return result.length ? result : fallbackProducts();
+  } catch(e) { return fallbackProducts(); }
+}
+
+function fallbackProducts() {
+  return [
+    {ten:'Bánh bao xúc xích phomai',          gia:20000},
+    {ten:'Bánh bao xá xíu phomai',            gia:22000},
+    {ten:'Bánh bao gà nấm phomai',            gia:28000},
+    {ten:'Bánh bao bò phomai',                gia:25000},
+    {ten:'Bánh bao thịt trứng cút',           gia:20000},
+    {ten:'Bánh bao hình thú',                 gia:15000},
+    {ten:'Bánh bao kimsa',                    gia:15000},
+    {ten:'Bánh bao lava matcha',              gia:15000},
+    {ten:'Bánh bao gạo lứt không nhân',       gia:10000},
+    {ten:'Bánh bao chay ngũ sắc',             gia:15000},
+    {ten:'Bánh mì pate chà bông',             gia:15000},
+    {ten:'Bánh mì xúc xích chà bông',        gia:18000},
+    {ten:'Bánh mì gà cay chua ngọt',         gia:20000},
+    {ten:'Bánh mì bò',                        gia:22000},
+    {ten:'Mì ý bò bằm',                       gia:28000},
+    {ten:'Mì ý sốt kem nấm thịt xông khói',  gia:28000},
+    {ten:'Mì ý sốt thanh cua',               gia:28000},
+    {ten:'Cơm nắm teriyaki',                  gia:15000},
+    {ten:'Cơm nắm xúc xích phomai tan chảy', gia:17000},
+    {ten:'Yaourt',                             gia:10000},
+  ];
+}
 
 var DENOMS = [500000,200000,100000,50000,20000,10000,5000,2000,1000];
 

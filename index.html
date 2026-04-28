@@ -74,19 +74,17 @@ const { useState, useEffect } = React;
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzkkjtkLH80h-QzxUT822H5VpCikXWRVgbeifv2FUqnB-z7ubRVnSgxbAWSdSWCDprEvA/exec';
 
-const PRODUCTS = [
-  {ten:'Bánh bao xúc xích phomai',       short:'BB xúc xích phomai',  gia:20000, emoji:'🥟'},
-  {ten:'Bánh bao xá xíu phomai',         short:'BB xá xíu phomai',    gia:22000, emoji:'🥟'},
-  {ten:'Bánh bao gà nấm phomai',         short:'BB gà nấm phomai',    gia:28000, emoji:'🥟'},
-  {ten:'Bánh bao bò phomai',             short:'BB bò phomai',        gia:25000, emoji:'🥟'},
-  {ten:'Bánh bao thịt trứng cút',        short:'BB thịt trứng cút',   gia:20000, emoji:'🥟'},
-  {ten:'Bánh bao hình thú',              short:'BB hình thú',         gia:15000, emoji:'🐰'},
-  {ten:'Bánh bao kimsa',                 short:'BB kimsa',            gia:15000, emoji:'🥮'},
-  {ten:'Bánh bao lava matcha',           short:'BB lava matcha',      gia:15000, emoji:'🍵'},
-  {ten:'Cơm nắm xúc xích sốt teriyaki', short:'Cơm nắm teriyaki',    gia:15000, emoji:'🍙'},
-  {ten:'Cơm nắm xúc xích phomai',       short:'Cơm nắm phomai',      gia:17000, emoji:'🍙'},
-  {ten:'Yaourt',                          short:'Yaourt',              gia:10000, emoji:'🥛'},
-];
+function productEmoji(ten) {
+  if (ten.startsWith('Bánh bao')) return '🥟';
+  if (ten.startsWith('Bánh mì'))  return '🥖';
+  if (ten.startsWith('Mì ý'))     return '🍝';
+  if (ten.startsWith('Cơm nắm')) return '🍙';
+  if (ten === 'Yaourt')            return '🥛';
+  return '🍱';
+}
+function productShort(ten) {
+  return ten.replace('Bánh bao ','BB ').replace('Cơm nắm xúc xích ','Cơm nắm ');
+}
 
 const DENOMS = [500000,200000,100000,50000,20000,10000,5000,2000,1000];
 
@@ -98,10 +96,9 @@ const computeTieuThu = v => {
   return Math.max(0, (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)+(v.nhap||0)-(v.hu||0)-(v.km||0)-Number(v.cuoi_thuc));
 };
 
-// Doanh thu: dùng tiêu thụ thực nếu có, fallback sang xuat khi chưa cuối ca
-const productRev = (v,i) => {
+const productRev = (v, gia) => {
   const tt = computeTieuThu(v);
-  return (tt !== null ? tt : (v.xuat||0)) * PRODUCTS[i].gia;
+  return (tt !== null ? tt : (v.xuat||0)) * gia;
 };
 
 const fmt = n => Math.round(n).toLocaleString('vi-VN')+'đ';
@@ -120,7 +117,7 @@ const INIT = () => {
     ngay: new Date().toISOString().slice(0,10),
     vi_tri: user.vi_tri||'', ten: user.ten||'',
     dau_ca_done: false,
-    products: PRODUCTS.map(()=>({})),
+    products: Array(20).fill(null).map(()=>({})),
     tien_dau:{}, tien_cuoi:{}, cat_dt:{},
     chi_phi:0, dt_nh:0,
     nguoi_giao:'', nguoi_nhan:'', ghi_chu:''
@@ -131,9 +128,31 @@ const STORAGE_KEY    = 'ca_v2';
 const USER_KEY       = 'ca_user';
 const SPREADSHEET_ID = '1EfEAvuYPyf3GWVbi7egfR6SI3riNKPsCiVW0OFZLpg8';
 
-// Đọc trực tiếp từ docs.google.com/gviz/tq — có CORS headers chuẩn, không qua GAS echo redirect
-// Yêu cầu: spreadsheet phải được share "Anyone with the link can view"
-function fetchLastShift(vi_tri) {
+// Đọc san_pham sheet — trả về toàn bộ sản phẩm (kèm cột địa điểm)
+function fetchAllProducts() {
+  var url = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID
+          + '/gviz/tq?tqx=out:json&sheet=san_pham';
+  return fetch(url)
+    .then(function(r){ return r.text(); })
+    .then(function(text){
+      var m = text.match(/setResponse\(([\s\S]*)\)/);
+      if (!m) return null;
+      var resp = JSON.parse(m[1]);
+      if (resp.status !== 'ok' || !resp.table || !resp.table.rows.length) return null;
+      return resp.table.rows
+        .map(function(row){
+          var ten = row.c[0]&&row.c[0].v ? String(row.c[0].v) : '';
+          var gia = row.c[1]&&row.c[1].v ? Number(row.c[1].v) : 0;
+          var bt  = !!(row.c[2]&&row.c[2].v==='x');
+          var q6  = !!(row.c[3]&&row.c[3].v==='x');
+          return {ten, gia, short:productShort(ten), emoji:productEmoji(ten), binh_tan:bt, quan_6:q6};
+        })
+        .filter(function(p){ return p.ten; });
+    });
+}
+
+// Đọc ca trước từ ca_lam_viec qua gviz — nProducts = tổng số sản phẩm trong schema
+function fetchLastShift(vi_tri, nProducts) {
   var tq  = "select * where C = '" + vi_tri.replace(/'/g, "\\'") + "'";
   var url = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID
           + '/gviz/tq?tqx=out:json&tq=' + encodeURIComponent(tq) + '&sheet=ca_lam_viec';
@@ -145,7 +164,7 @@ function fetchLastShift(vi_tri) {
       var resp = JSON.parse(m[1]);
       if (resp.status !== 'ok' || !resp.table || !resp.table.rows.length) return {success:false};
       var row = resp.table.rows[resp.table.rows.length - 1].c;
-      var products = PRODUCTS.map(function(_, p) {
+      var products = Array.from({length: nProducts}, function(_, p) {
         var cell = row[4 + p * 13 + 8];
         return {cuoi_thuc: (cell && cell.v !== null && cell.v !== undefined) ? Number(cell.v) : undefined};
       });
@@ -184,21 +203,15 @@ const DAU_ZONES = [
 ];
 const noNeg = e => { if(e.key==='-'||e.key==='e'||e.key==='E') e.preventDefault(); };
 
-function DauCa({data, setData, onBack, onDone, prevData, setPrevData}) {
-  const upd = (i,k,val) => {
-    const ps=[...data.products]; ps[i]={...ps[i],[k]:val}; setData({...data,products:ps});
+function DauCa({data, setData, onBack, onDone, prevData, products}) {
+  const upd = (idx,k,val) => {
+    const ps=[...data.products]; ps[idx]={...(ps[idx]||{}),[k]:val}; setData({...data,products:ps});
   };
-  const filled = data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0).length;
+  const filled = products.filter(p=>{const v=data.products[p.idx]||{}; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0;}).length;
 
-  React.useEffect(()=>{
-    if (!data.vi_tri) return;
-    fetchLastShift(data.vi_tri)
-      .then(res => { if (res.success && res.products) setPrevData(res.products); })
-      .catch(()=>{});
-  }, [data.vi_tri]);
-
-  const lechCount = prevData ? data.products.filter((v,i)=>{
-    const pt=prevData[i]?.cuoi_thuc; if(pt===undefined||pt===null) return false;
+  const lechCount = prevData ? products.filter(p=>{
+    const v=data.products[p.idx]||{};
+    const pt=prevData[p.idx]?.cuoi_thuc; if(pt===undefined||pt===null) return false;
     const total=(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0);
     return total!==Number(pt);
   }).length : 0;
@@ -211,23 +224,23 @@ function DauCa({data, setData, onBack, onDone, prevData, setPrevData}) {
             <div className="h-section">Đầu ca</div>
             <h1 style={{fontSize:18,marginTop:2}}>Kiểm hàng đầu ca</h1>
           </div>
-          <div className="chip chip-accent">{filled}/{PRODUCTS.length}</div>
+          <div className="chip chip-accent">{filled}/{products.length}</div>
         </div>
         <div className="progress" style={{marginTop:12}}>
-          <div style={{width:`${(filled/PRODUCTS.length)*100}%`}}/>
+          <div style={{width:`${products.length?(filled/products.length)*100:0}%`}}/>
         </div>
       </div>
       <div className="scroll-area" style={{padding:'10px 12px 24px'}}>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
-          {PRODUCTS.map((p,i)=>{
-            const v=data.products[i]||{};
+          {products.map(p=>{
+            const v=data.products[p.idx]||{};
             const total=(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0);
-            const pt=prevData?.[i]?.cuoi_thuc;
+            const pt=prevData?.[p.idx]?.cuoi_thuc;
             const hasPrev=pt!==undefined&&pt!==null&&pt!=='';
             const lech=hasPrev?total-Number(pt):null;
             const isLech=lech!==null&&lech!==0;
             return (
-              <div key={i} className="m-card" style={{padding:'10px 10px 8px',
+              <div key={p.idx} className="m-card" style={{padding:'10px 10px 8px',
                 background:isLech?'#fffbeb':'var(--card)',
                 border:isLech?'2px solid var(--warn)':total>0?'2px solid var(--ok)':'1px solid var(--line)'}}>
                 <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
@@ -263,7 +276,7 @@ function DauCa({data, setData, onBack, onDone, prevData, setPrevData}) {
                         <div style={{fontSize:15,lineHeight:1,marginBottom:1}}>{z.icon}</div>
                         <input type="number" inputMode="numeric" min="0"
                           value={cnt===0?'':cnt} placeholder="0"
-                          onChange={e=>upd(i,z.k,Math.max(0,parseInt(e.target.value||'0',10)||0))}
+                          onChange={e=>upd(p.idx,z.k,Math.max(0,parseInt(e.target.value||'0',10)||0))}
                           onFocus={e=>e.target.select()} onKeyDown={noNeg}
                           style={{width:'100%',textAlign:'center',fontSize:18,fontWeight:800,
                             border:0,background:'transparent',color:has?'var(--ok)':'var(--ink)',
@@ -284,8 +297,8 @@ function DauCa({data, setData, onBack, onDone, prevData, setPrevData}) {
             ⚠ {lechCount} sản phẩm lệch so với ca trước
           </div>
         )}
-        <button className={`btn-primary ${filled===PRODUCTS.length&&lechCount===0?'is-ok':''}`} onClick={onDone}>
-          {filled===PRODUCTS.length?'✓ Kiểm hàng xong':`Lưu (${filled}/${PRODUCTS.length} sản phẩm)`}
+        <button className={`btn-primary ${filled===products.length&&lechCount===0?'is-ok':''}`} onClick={onDone}>
+          {filled===products.length?'✓ Kiểm hàng xong':`Lưu (${filled}/${products.length} sản phẩm)`}
         </button>
       </div>
     </div>
@@ -300,15 +313,15 @@ const ACTS = [
   {k:'km',  label:'KM',  color:'#a06b3a',      bg:'#fbf0e2',           ink:'#7a4f25'},
 ];
 
-function TrongCa({data, setData, onBack, onDone}) {
-  const upd = (i,k,d) => {
-    const ps=[...data.products]; ps[i]={...ps[i],[k]:Math.max(0,(ps[i]?.[k]||0)+d)}; setData({...data,products:ps});
+function TrongCa({data, setData, onBack, onDone, products}) {
+  const upd = (idx,k,d) => {
+    const ps=[...data.products]; ps[idx]={...(ps[idx]||{}),[k]:Math.max(0,((ps[idx]||{})[k]||0)+d)}; setData({...data,products:ps});
   };
-  const set = (i,k,v) => {
-    const ps=[...data.products]; ps[i]={...ps[i],[k]:Math.max(0,v)}; setData({...data,products:ps});
+  const set = (idx,k,v) => {
+    const ps=[...data.products]; ps[idx]={...(ps[idx]||{}),[k]:Math.max(0,v)}; setData({...data,products:ps});
   };
-  const totalTon    = data.products.reduce((s,v)=>s+Math.max(0,computePredicted(v)),0);
-  const outOfStockN = data.products.filter(v=>computePredicted(v)<=0).length;
+  const totalTon    = products.reduce((s,p)=>s+Math.max(0,computePredicted(data.products[p.idx]||{})),0);
+  const outOfStockN = products.filter(p=>computePredicted(data.products[p.idx]||{})<=0).length;
   return (
     <div className="screen">
       <div className="app-bar" style={{background:'var(--ink)',borderBottom:0,color:'#fff'}}>
@@ -327,12 +340,12 @@ function TrongCa({data, setData, onBack, onDone}) {
       </div>
       <div className="scroll-area" style={{padding:'10px 10px 24px'}}>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
-          {PRODUCTS.map((p,i)=>{
-            const v=data.products[i]||{};
+          {products.map(p=>{
+            const v=data.products[p.idx]||{};
             const ton=computePredicted(v);
             const oos=ton<=0;
             return (
-              <div key={i} className="m-card" style={{padding:'10px 10px 8px',
+              <div key={p.idx} className="m-card" style={{padding:'10px 10px 8px',
                 border:oos?'2px solid var(--err)':'2px solid transparent',
                 background:oos?'#fff5f5':'var(--paper)'}}>
                 <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
@@ -368,7 +381,7 @@ function TrongCa({data, setData, onBack, onDone}) {
                       }}>
                         <input type="number" inputMode="numeric" min="0"
                           value={cnt===0?'':cnt} placeholder="0"
-                          onChange={e=>set(i,a.k,Math.max(0,parseInt(e.target.value||'0',10)||0))}
+                          onChange={e=>set(p.idx,a.k,Math.max(0,parseInt(e.target.value||'0',10)||0))}
                           onFocus={e=>e.target.select()} onKeyDown={noNeg}
                           style={{width:'100%',textAlign:'center',fontSize:20,fontWeight:800,
                             border:0,background:'transparent',color:has?a.ink:'var(--line-2)',
@@ -378,7 +391,7 @@ function TrongCa({data, setData, onBack, onDone}) {
                     );
                     return (
                       <div key={a.k} style={{position:'relative'}}>
-                        <button onClick={()=>!blocked&&upd(i,a.k,+1)} style={{
+                        <button onClick={()=>!blocked&&upd(p.idx,a.k,+1)} style={{
                           width:'100%',height:64,borderRadius:12,cursor:blocked?'not-allowed':'pointer',
                           background:blocked?'var(--paper-2)':has?a.bg:'var(--paper-2)',
                           border:'1.5px solid '+(blocked?'var(--line-2)':has?a.color:'transparent'),
@@ -388,7 +401,7 @@ function TrongCa({data, setData, onBack, onDone}) {
                           <div className="t-num" style={{fontSize:22,fontWeight:800,lineHeight:1,color:blocked?'var(--line-2)':has?a.ink:'var(--line-2)'}}>{cnt>0?cnt:'+'}</div>
                           <div style={{fontSize:10,fontWeight:700,marginTop:4,textTransform:'uppercase',letterSpacing:.5,color:blocked?'var(--line-2)':has?a.ink:'var(--muted)'}}>{a.label}</div>
                         </button>
-                        {has&&!blocked&&<button onClick={e=>{e.stopPropagation();upd(i,a.k,-1)}} style={{
+                        {has&&!blocked&&<button onClick={e=>{e.stopPropagation();upd(p.idx,a.k,-1)}} style={{
                           position:'absolute',top:-4,right:-4,width:22,height:22,borderRadius:'50%',
                           background:'#fff',border:'1.5px solid '+a.color,color:a.color,
                           fontSize:16,fontWeight:700,lineHeight:1,padding:0,
@@ -416,27 +429,27 @@ const CUOI_ZONES = [
   {k:'cuoi_hop', icon:'🧁', label:'Hộp'},
 ];
 
-function CuoiCa({data, setData, onBack, onDone}) {
-  const upd = (i, zk, rawVal) => {
+function CuoiCa({data, setData, onBack, onDone, products}) {
+  const upd = (idx, zk, rawVal) => {
     const ps   = [...data.products];
-    const prev = ps[i]||{};
+    const prev = ps[idx]||{};
     const val  = rawVal==='' ? undefined : Math.max(0,parseInt(rawVal)||0);
     const updated = {...prev, [zk]: val};
     const kho  = zk==='cuoi_kho' ? val : prev.cuoi_kho;
     const hop  = zk==='cuoi_hop' ? val : prev.cuoi_hop;
     updated.cuoi_thuc = (kho!==undefined||hop!==undefined) ? (kho||0)+(hop||0) : undefined;
-    ps[i] = updated;
+    ps[idx] = updated;
     setData({...data,products:ps});
   };
-  const rows = PRODUCTS.map((p,i)=>{
-    const v=data.products[i]||{};
+  const rows = products.map(p=>{
+    const v=data.products[p.idx]||{};
     const checked=v.cuoi_kho!==undefined||v.cuoi_hop!==undefined;
     const tieuThu=computeTieuThu(v);
-    return {p,i,v,checked,tieuThu};
+    return {p,v,checked,tieuThu};
   });
   const doneCount = rows.filter(r=>r.checked).length;
   const allDone   = doneCount===rows.length;
-  const totalRev  = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
+  const totalRev  = products.reduce((s,p)=>s+productRev(data.products[p.idx]||{},p.gia),0);
   return (
     <div className="screen">
       <div className="app-bar" style={{background:'#1565c0',borderBottom:0}}>
@@ -452,7 +465,7 @@ function CuoiCa({data, setData, onBack, onDone}) {
       <div className="scroll-area" style={{padding:'12px 12px 24px'}}>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           {rows.map(r=>(
-            <div key={r.i} className="m-card" style={{padding:'10px 10px 8px',
+            <div key={r.p.idx} className="m-card" style={{padding:'10px 10px 8px',
               borderColor:r.checked?'var(--ok)':'var(--line)',borderWidth:r.checked?1.5:1}}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
                 <span style={{fontSize:22}}>{r.p.emoji}</span>
@@ -477,7 +490,7 @@ function CuoiCa({data, setData, onBack, onDone}) {
                         <div style={{fontSize:15,lineHeight:1,marginBottom:1}}>{z.icon}</div>
                         <input type="number" inputMode="numeric" min="0"
                           value={cnt===undefined?'':cnt} placeholder="0"
-                          onChange={e=>upd(r.i,z.k,e.target.value)}
+                          onChange={e=>upd(r.p.idx,z.k,e.target.value)}
                           onFocus={e=>e.target.select()} onKeyDown={noNeg}
                           style={{width:'100%',textAlign:'center',fontSize:18,fontWeight:800,
                             border:0,background:'transparent',color:has?'var(--ok)':'var(--ink)',
@@ -521,13 +534,13 @@ function CuoiCa({data, setData, onBack, onDone}) {
 }
 
 /* ─── TIỀN ─── */
-function Tien({mode, data, setData, onBack, onDone}) {
+function Tien({mode, data, setData, onBack, onDone, products}) {
   const key    = mode==='dau'?'tien_dau':'tien_cuoi';
   const counts = data[key]||{};
   const updD   = (d,delta) => setData({...data,[key]:{...counts,[d]:Math.max(0,(counts[d]||0)+delta)}});
   const setVal = (d,val)   => setData({...data,[key]:{...counts,[d]:Math.max(0,val)}});
   const total    = DENOMS.reduce((s,d)=>s+(counts[d]||0)*d,0);
-  const totalRev = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
+  const totalRev = products.reduce((s,p)=>s+productRev(data.products[p.idx]||{},p.gia),0);
   const dauTotal = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
   const chiPhi   = data.chi_phi||0;
   const dtNH     = data.dt_nh||0;
@@ -612,14 +625,14 @@ function Tien({mode, data, setData, onBack, onDone}) {
 }
 
 /* ─── GIAO CA ─── */
-function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
+function GiaoCa({data, setData, onBack, onSubmit, submitting, products}) {
   const upd       = (k,v) => setData({...data,[k]:v});
   const catDt     = data.cat_dt||{};
   const updCat    = (d,delta) => setData({...data,cat_dt:{...catDt,[d]:Math.max(0,(catDt[d]||0)+delta)}});
   const setCat    = (d,val)   => setData({...data,cat_dt:{...catDt,[d]:Math.max(0,val)}});
   const totalCuoi = DENOMS.reduce((s,d)=>s+(data.tien_cuoi?.[d]||0)*d,0);
   const totalDau  = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
-  const totalRev  = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
+  const totalRev  = products.reduce((s,p)=>s+productRev(data.products[p.idx]||{},p.gia),0);
   const expected  = totalDau+(totalRev-(data.dt_nh||0))-(data.chi_phi||0);
   const tienDiff  = totalCuoi-expected;
   const totalCat  = DENOMS.reduce((s,d)=>s+(catDt[d]||0)*d,0);
@@ -759,23 +772,24 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
 }
 
 /* ─── HUB ─── */
-function Hub({data, setData, setScreen, prevData}) {
+function Hub({data, setData, setScreen, prevData, products}) {
   const [editing, setEditing] = useState(!(data.ten&&data.vi_tri));
   const tienDauTotal = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
   const tienCuoiTotal= DENOMS.reduce((s,d)=>s+(data.tien_cuoi?.[d]||0)*d,0);
   const hangDone    = data.dau_ca_done;
-  const dauLechCount= hangDone&&prevData ? data.products.filter((v,i)=>{ const pt=prevData[i]?.cuoi_thuc; if(pt===undefined||pt==='') return false; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)!==Number(pt); }).length : 0;
+  const dauLechCount= hangDone&&prevData&&products.length ? products.filter(p=>{ const v=data.products[p.idx]||{}; const pt=prevData[p.idx]?.cuoi_thuc; if(pt===undefined||pt==='') return false; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)!==Number(pt); }).length : 0;
   const tienDauDone = tienDauTotal>0;
   const tienCuoiDone= tienCuoiTotal>0;
-  const trongActive = data.products.some(v=>(v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)>0);
-  const cuoiDone    = data.products.every(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='');
-  const totalRev    = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
-  const filledCount = data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0).length;
-  const cuoiCount   = data.products.filter(v=>v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='').length;
+  const trongActive = products.some(p=>{ const v=data.products[p.idx]||{}; return (v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)>0; });
+  const cuoiDone    = products.length>0 && products.every(p=>{ const v=data.products[p.idx]||{}; return v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''; });
+  const totalRev    = products.reduce((s,p)=>s+productRev(data.products[p.idx]||{},p.gia),0);
+  const filledCount = products.filter(p=>{ const v=data.products[p.idx]||{}; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0; }).length;
+  const cuoiCount   = products.filter(p=>{ const v=data.products[p.idx]||{}; return v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''; }).length;
+  const nP          = products.length;
   const sections = [
     { label:'Đầu ca', tiles:[
       {key:'dau',      title:'Kiểm hàng', icon:'📦', done:hangDone&&dauLechCount===0, warn:hangDone&&dauLechCount>0,
-       sub:hangDone?(dauLechCount>0?`⚠ ${dauLechCount} sản phẩm lệch ca trước`:`${filledCount}/${PRODUCTS.length} sản phẩm đã đếm`):'Đếm tồn hàng + bánh cũ'},
+       sub:hangDone?(dauLechCount>0?`⚠ ${dauLechCount} sản phẩm lệch ca trước`:`${filledCount}/${nP} sản phẩm đã đếm`):'Đếm tồn hàng + bánh cũ'},
       {key:'tien-dau', title:'Kiểm tiền', icon:'💵', done:tienDauDone,
        sub:tienDauDone?`Tổng ${fmt(tienDauTotal)}`:'Đếm tiền mặt tại két'},
     ]},
@@ -785,7 +799,7 @@ function Hub({data, setData, setScreen, prevData}) {
     ]},
     { label:'Cuối ca', tiles:[
       {key:'cuoi',      title:'Kiểm hàng', icon:'🔍', done:cuoiDone,
-       sub:cuoiDone?`✓ Đã đếm ${cuoiCount}/${PRODUCTS.length}`:`Đã đếm ${cuoiCount}/${PRODUCTS.length}`},
+       sub:cuoiDone?`✓ Đã đếm ${cuoiCount}/${nP}`:`Đã đếm ${cuoiCount}/${nP}`},
       {key:'tien-cuoi', title:'Kiểm tiền', icon:'💵', done:tienCuoiDone,
        sub:tienCuoiDone?`Tổng ${fmt(tienCuoiTotal)}`:'Đếm tiền mặt cuối ca'},
       {key:'giao',      title:'Bàn giao',  icon:'📋',
@@ -873,11 +887,12 @@ function App() {
   const [data, setDataRaw] = useState(()=>{
     try { const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):INIT(); } catch { return INIT(); }
   });
-  const [screen,     setScreen]    = useState('hub');
-  const [toast,      setToast]     = useState(null);
-  const [submitting, setSubmitting]= useState(false);
-  const [hasUpdate,  setHasUpdate] = useState(false);
-  const [prevData,   setPrevData]  = useState(null);
+  const [screen,      setScreen]    = useState('hub');
+  const [toast,       setToast]     = useState(null);
+  const [submitting,  setSubmitting]= useState(false);
+  const [hasUpdate,   setHasUpdate] = useState(false);
+  const [prevData,    setPrevData]  = useState(null);
+  const [allProducts, setAllProducts]= useState(null);
 
   useEffect(()=>{
     if (!('serviceWorker' in navigator)) return;
@@ -902,6 +917,38 @@ function App() {
     // Sau khi SW mới kích hoạt (do SKIP_WAITING) → reload để lấy bản mới
     navigator.serviceWorker.addEventListener('controllerchange', ()=>window.location.reload());
   }, []);
+
+  // Fetch all products from san_pham sheet once on mount
+  useEffect(()=>{
+    fetchAllProducts()
+      .then(ps=>{
+        if (!ps) return;
+        setAllProducts(ps);
+        setDataRaw(d=>{
+          if (d.products.length===ps.length) return d;
+          const saved = d.products;
+          const migrated = ps.map((_,i)=>saved[i]||{});
+          const next = {...d, products:migrated};
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+          return next;
+        });
+      })
+      .catch(()=>{});
+  }, []);
+
+  // Fetch previous shift when location + allProducts are ready
+  useEffect(()=>{
+    if (!data.vi_tri || !allProducts) return;
+    fetchLastShift(data.vi_tri, allProducts.length)
+      .then(res=>{ if (res.success && res.products) setPrevData(res.products); })
+      .catch(()=>{});
+  }, [data.vi_tri, allProducts]);
+
+  // Products visible at current location (with allProducts index)
+  const locationProducts = allProducts
+    ? allProducts.map((p,i)=>({...p,idx:i})).filter(p=>
+        data.vi_tri==='Bình Tân' ? p.binh_tan : data.vi_tri==='Quận 6' ? p.quan_6 : false)
+    : [];
 
   const setData = d => {
     setDataRaw(d);
@@ -936,13 +983,13 @@ function App() {
           </button>
         </div>
       )}
-      {screen==='hub'       &&<Hub      data={data} setData={setData} setScreen={nav} prevData={prevData}/>}
-      {screen==='dau'       &&<DauCa    data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>{ setData({...data, dau_ca_done:true}); nav('hub'); }} prevData={prevData} setPrevData={setPrevData}/>}
-      {screen==='trong'     &&<TrongCa  data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')}/>}
-      {screen==='cuoi'      &&<CuoiCa   data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')}/>}
-      {screen==='tien-dau'  &&<Tien mode="dau"  data={data} setData={setData} onBack={()=>nav('hub')}      onDone={()=>nav('hub')}/>}
-      {screen==='tien-cuoi' &&<Tien mode="cuoi" data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('giao')}/>}
-      {screen==='giao'      &&<GiaoCa   data={data} setData={setData} onBack={()=>nav('tien-cuoi')} onSubmit={handleSubmit} submitting={submitting}/>}
+      {screen==='hub'       &&<Hub      data={data} setData={setData} setScreen={nav} prevData={prevData} products={locationProducts}/>}
+      {screen==='dau'       &&<DauCa    data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>{ setData({...data, dau_ca_done:true}); nav('hub'); }} prevData={prevData} products={locationProducts}/>}
+      {screen==='trong'     &&<TrongCa  data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')} products={locationProducts}/>}
+      {screen==='cuoi'      &&<CuoiCa   data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')} products={locationProducts}/>}
+      {screen==='tien-dau'  &&<Tien mode="dau"  data={data} setData={setData} onBack={()=>nav('hub')}      onDone={()=>nav('hub')} products={locationProducts}/>}
+      {screen==='tien-cuoi' &&<Tien mode="cuoi" data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('giao')} products={locationProducts}/>}
+      {screen==='giao'      &&<GiaoCa   data={data} setData={setData} onBack={()=>nav('tien-cuoi')} onSubmit={handleSubmit} submitting={submitting} products={locationProducts}/>}
       {toast&&<div className={`toast ${toast.type}`}>{toast.msg}</div>}
     </div>
   );
