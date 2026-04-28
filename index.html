@@ -121,7 +121,7 @@ const INIT = () => {
     vi_tri: user.vi_tri||'', ten: user.ten||'',
     dau_ca_done: false,
     products: PRODUCTS.map(()=>({})),
-    tien_dau:{}, tien_cuoi:{},
+    tien_dau:{}, tien_cuoi:{}, cat_dt:{},
     chi_phi:0, dt_nh:0,
     nguoi_giao:'', nguoi_nhan:'', ghi_chu:''
   };
@@ -582,12 +582,20 @@ function Tien({mode, data, setData, onBack, onDone}) {
 /* ─── GIAO CA ─── */
 function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
   const upd       = (k,v) => setData({...data,[k]:v});
+  const catDt     = data.cat_dt||{};
+  const updCat    = (d,delta) => setData({...data,cat_dt:{...catDt,[d]:Math.max(0,(catDt[d]||0)+delta)}});
+  const setCat    = (d,val)   => setData({...data,cat_dt:{...catDt,[d]:Math.max(0,val)}});
   const totalCuoi = DENOMS.reduce((s,d)=>s+(data.tien_cuoi?.[d]||0)*d,0);
   const totalDau  = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
   const totalRev  = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
   const expected  = totalDau+(totalRev-(data.dt_nh||0))-(data.chi_phi||0);
   const tienDiff  = totalCuoi-expected;
-  const canSubmit = !submitting;
+  const totalCat  = DENOMS.reduce((s,d)=>s+(catDt[d]||0)*d,0);
+  const rem       = DENOMS.map(d=>({d,n:(data.tien_cuoi?.[d]||0)-(catDt[d]||0)}));
+  const totalRem  = rem.reduce((s,r)=>s+r.n*r.d,0);
+  const hasNeg    = rem.some(r=>r.n<0);
+  const remRows   = rem.filter(r=>(data.tien_cuoi?.[r.d]||0)>0||(catDt[r.d]||0)>0);
+  const canSubmit = !submitting&&!hasNeg;
   return (
     <div className="screen">
       <div className="app-bar">
@@ -600,7 +608,8 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
         </div>
       </div>
       <div className="scroll-area" style={{padding:'14px 14px 24px'}}>
-        <div className="m-card" style={{padding:14,marginBottom:14}}>
+
+        <div className="m-card" style={{padding:14,marginBottom:12}}>
           <div className="h-section" style={{marginBottom:10}}>Tóm tắt ca {data.ten||'—'} · {data.vi_tri||'—'}</div>
           <div style={{display:'flex',flexDirection:'column',gap:6,fontSize:13}}>
             {[['Doanh thu hàng',fmt(totalRev)],['Chuyển khoản / NH',fmt(data.dt_nh||0)],['Chi phí',fmt(data.chi_phi||0)],['Tiền đầu ca',fmt(totalDau)],['Tiền cuối ca',fmt(totalCuoi)]].map(([l,v])=>(
@@ -616,6 +625,87 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
             </div>
           </div>
         </div>
+
+        <div className="m-card" style={{padding:14,marginBottom:12}}>
+          <div className="h-section" style={{marginBottom:10}}>💰 Cất doanh thu</div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {DENOMS.map(d=>{
+              const n=catDt[d]||0; const has=n>0;
+              const avail=data.tien_cuoi?.[d]||0;
+              const over=n>avail&&avail>0;
+              return (
+                <div key={d} className="m-card" style={{padding:10,display:'flex',alignItems:'center',gap:10,
+                  borderColor:over?'var(--err)':has?'var(--accent)':'var(--line)',borderWidth:(over||has)?1.5:1}}>
+                  <div style={{width:72,height:40,borderRadius:8,background:denomBg(d),display:'flex',alignItems:'center',
+                    justifyContent:'center',color:'#fff',fontWeight:800,fontSize:13,flexShrink:0,
+                    textShadow:'0 1px 1px rgba(0,0,0,.25)'}} className="t-num">{denomLabel(d)}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div className="t-money" style={{fontSize:12,color:over?'var(--err)':has?'var(--ink-2)':'var(--muted)',fontWeight:has?600:400}}>
+                      {has?fmt(n*d):'—'}
+                    </div>
+                    {avail>0&&<div style={{fontSize:10,color:'var(--muted)',marginTop:1}}>có {avail} tờ</div>}
+                  </div>
+                  <button onClick={()=>updCat(d,-1)} disabled={n===0}
+                    style={{width:38,height:38,borderRadius:10,background:'var(--paper-2)',fontSize:22,
+                      color:n===0?'var(--line-2)':'var(--ink-2)',border:0}}>−</button>
+                  <input type="number" inputMode="numeric" value={n===0?'':n} placeholder="0"
+                    onChange={e=>setCat(d,parseInt(e.target.value||'0',10)||0)}
+                    onFocus={e=>e.target.select()} className="t-num"
+                    style={{width:52,height:38,borderRadius:10,border:'1px solid var(--line)',
+                      background:'#fff',textAlign:'center',fontSize:17,fontWeight:700}}/>
+                  <button onClick={()=>updCat(d,+1)}
+                    style={{width:44,height:38,borderRadius:10,background:'var(--accent)',
+                      color:'#fff',fontSize:22,fontWeight:600,lineHeight:1,border:0}}>+</button>
+                </div>
+              );
+            })}
+          </div>
+          {totalCat>0&&(
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:10,
+              padding:'10px 12px',borderRadius:10,background:'var(--accent-soft)'}}>
+              <span style={{fontSize:13,fontWeight:700,color:'var(--accent-ink)'}}>Tổng cất</span>
+              <span className="t-money" style={{fontSize:18,fontWeight:800,color:'var(--accent-ink)'}}>{fmt(totalCat)}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="m-card" style={{padding:14,marginBottom:12,
+          background:hasNeg?'var(--err-soft)':'var(--ok-soft)',
+          borderColor:hasNeg?'var(--err)':'var(--ok)',borderWidth:1.5}}>
+          <div className="h-section" style={{marginBottom:10,color:hasNeg?'var(--err)':'var(--ok)'}}>
+            🏦 Còn lại cho ca sau
+          </div>
+          {remRows.length===0?(
+            <div style={{color:'var(--muted)',fontSize:13,textAlign:'center',padding:'8px 0'}}>Chưa có dữ liệu tiền cuối ca</div>
+          ):(
+            <div style={{display:'flex',flexDirection:'column',gap:4}}>
+              {remRows.map(r=>(
+                <div key={r.d} style={{display:'flex',alignItems:'center',gap:10,padding:'6px 8px',borderRadius:8,
+                  background:r.n<0?'rgba(197,34,31,.08)':'rgba(255,255,255,.5)'}}>
+                  <div style={{width:60,height:32,borderRadius:6,background:denomBg(r.d),display:'flex',
+                    alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:800,fontSize:11,
+                    flexShrink:0,opacity:r.n===0?.45:1}} className="t-num">{denomLabel(r.d)}</div>
+                  <div style={{flex:1}}>
+                    <span className="t-num" style={{fontSize:16,fontWeight:800,
+                      color:r.n<0?'var(--err)':r.n===0?'var(--muted)':'var(--ink)'}}>{r.n}</span>
+                    <span style={{color:'var(--muted)',fontSize:11,marginLeft:3}}>tờ</span>
+                  </div>
+                  <span className="t-money" style={{fontSize:13,fontWeight:700,
+                    color:r.n<0?'var(--err)':r.n===0?'var(--muted)':'var(--ok)'}}>{r.n===0?'—':fmt(r.n*r.d)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',
+            marginTop:remRows.length?10:4,paddingTop:remRows.length?10:0,
+            borderTop:remRows.length?'1.5px solid '+(hasNeg?'var(--err)':'rgba(45,106,79,.2)'):'none',fontWeight:700}}>
+            <span style={{fontSize:15,color:hasNeg?'var(--err)':'var(--ok)'}}>Tổng còn lại</span>
+            <span className="t-money" style={{fontSize:22,fontWeight:800,color:hasNeg?'var(--err)':'var(--ok)'}}>{fmt(totalRem)}</span>
+          </div>
+          {hasNeg&&<div style={{marginTop:8,padding:'6px 10px',borderRadius:8,background:'var(--err)',
+            color:'#fff',fontSize:12,fontWeight:600}}>⚠ Số tờ cất vượt quá số tờ trong két — kiểm tra lại</div>}
+        </div>
+
         <div className="m-card" style={{padding:14,marginBottom:14}}>
           <div>
             <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>📝 Ghi chú (nếu có lệch)</label>
@@ -624,6 +714,10 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
         </div>
       </div>
       <div className="bottom-bar">
+        {hasNeg&&<div style={{marginBottom:8,padding:'8px 12px',borderRadius:8,
+          background:'var(--err-soft)',color:'var(--err)',fontWeight:700,fontSize:13}}>
+          ⚠ Kiểm tra lại số tờ đã cất
+        </div>}
         <button className="btn-primary is-ok" disabled={!canSubmit} onClick={onSubmit}>
           {submitting?'⏳ Đang gửi…':'✓ Gửi báo cáo ca'}
         </button>

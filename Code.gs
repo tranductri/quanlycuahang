@@ -125,11 +125,13 @@ function buildHeaders() {
   // Cash denominations
   DENOMS.forEach(function(d) { h.push('ĐC '+denomLabel(d)+' (tờ)'); });
   DENOMS.forEach(function(d) { h.push('CC '+denomLabel(d)+' (tờ)'); });
+  DENOMS.forEach(function(d) { h.push('CấtDT '+denomLabel(d)+' (tờ)'); });
 
   h.push(
     'Tổng tiền ĐC', 'Tổng tiền CC',
     'Chi phí', 'DT chuyển khoản',
     'Tổng DT hàng', 'Lệch tiền',
+    'Tổng cất DT', 'Còn lại ca sau',
     'Người giao', 'Người nhận', 'Ghi chú'
   );
   return h;
@@ -171,15 +173,21 @@ function buildRow(data) {
   DENOMS.forEach(function(d) { var n=Number(tienDau[d])||0;  row.push(n); tongDau  += n*d; });
   DENOMS.forEach(function(d) { var n=Number(tienCuoi[d])||0; row.push(n); tongCuoi += n*d; });
 
+  var catDtData = data.cat_dt || {};
+  var tongCat   = 0;
+  DENOMS.forEach(function(d) { var n=Number(catDtData[d])||0; row.push(n); tongCat += n*d; });
+
   var chiPhi  = Number(data.chi_phi) || 0;
   var dtNH    = Number(data.dt_nh)   || 0;
   var expected= tongDau + (totalRev - dtNH) - chiPhi;
   var lechTien= tongCuoi - expected;
+  var conLai  = tongCuoi - tongCat;
 
   row.push(
     tongDau, tongCuoi,
     chiPhi, dtNH,
     totalRev, lechTien,
+    tongCat, conLai,
     data.nguoi_giao||'', data.nguoi_nhan||'', data.ghi_chu||''
   );
 
