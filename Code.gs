@@ -1,6 +1,46 @@
 var SPREADSHEET_ID = '1EfEAvuYPyf3GWVbi7egfR6SI3riNKPsCiVW0OFZLpg8';
 var DENOMS = [500000,200000,100000,50000,20000,10000,5000,2000,1000];
 
+// ── Debug logger ─────────────────────────────────────────────
+function writeLog(action, status, meta, rawPayload) {
+  try {
+    var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('debug_log');
+    if (!sheet) {
+      sheet = ss.insertSheet('debug_log');
+      var h = ['Timestamp','Action','Status','Vị trí','Ngày','Tên','Tổng DT','Chi phí','DT NH','Lệch tiền','Ghi chú','Error','Raw payload'];
+      var hRange = sheet.getRange(1, 1, 1, h.length);
+      hRange.setValues([h]);
+      hRange.setBackground('#1a1a2e');
+      hRange.setFontColor('#ffffff');
+      hRange.setFontWeight('bold');
+      sheet.setFrozenRows(1);
+      sheet.setColumnWidth(13, 400);
+    }
+    var tz = Session.getScriptTimeZone();
+    var ts = Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm:ss');
+    var m  = meta || {};
+    var payload = rawPayload ? rawPayload.substring(0, 5000) : '';
+    sheet.appendRow([
+      ts,
+      action,
+      status,
+      m.vi_tri   || '',
+      m.ngay     || '',
+      m.ten      || '',
+      m.totalRev !== undefined ? m.totalRev : '',
+      m.chiPhi   !== undefined ? m.chiPhi   : '',
+      m.dtNH     !== undefined ? m.dtNH     : '',
+      m.lechTien !== undefined ? m.lechTien : '',
+      m.ghi_chu  || '',
+      m.error    || '',
+      payload,
+    ]);
+  } catch(e) {
+    // logging must never crash the main flow
+  }
+}
+
 // ── Sheet name per location ───────────────────────────────────
 function getSheetName(vi_tri) {
   if (vi_tri === 'Bình Tân') return 'binh_tan';
@@ -58,14 +98,66 @@ function fallbackProducts(vi_tri) {
             .map(function(p, localIdx){ return {ten:p.ten, gia:p.gia, sourceIdx:localIdx}; });
 }
 
+// ── All products with location flags (for frontend product list) ──
+function getAllProducts() {
+  try {
+    var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('san_pham');
+    if (!sheet || sheet.getLastRow() < 2) return {success:true, products:fallbackAllProducts()};
+    var rows     = sheet.getDataRange().getValues();
+    var products = [];
+    for (var i = 1; i < rows.length; i++) {
+      if (!rows[i][0]) continue;
+      products.push({
+        ten:      String(rows[i][0]),
+        gia:      Number(rows[i][1]) || 0,
+        binh_tan: rows[i][2] === 'x',
+        quan_6:   rows[i][3] === 'x',
+      });
+    }
+    return {success:true, products: products.length ? products : fallbackAllProducts()};
+  } catch(e) {
+    return {success:true, products: fallbackAllProducts()};
+  }
+}
+
+function fallbackAllProducts() {
+  return [
+    {ten:'Bánh bao xúc xích phomai',          gia:20000, binh_tan:true,  quan_6:true},
+    {ten:'Bánh bao xá xíu phomai',            gia:22000, binh_tan:true,  quan_6:true},
+    {ten:'Bánh bao gà nấm phomai',            gia:28000, binh_tan:true,  quan_6:true},
+    {ten:'Bánh bao bò phomai',                gia:25000, binh_tan:true,  quan_6:true},
+    {ten:'Bánh bao thịt trứng cút',           gia:20000, binh_tan:true,  quan_6:true},
+    {ten:'Bánh bao hình thú',                 gia:15000, binh_tan:true,  quan_6:true},
+    {ten:'Bánh bao kimsa',                    gia:15000, binh_tan:true,  quan_6:true},
+    {ten:'Bánh bao lava matcha',              gia:15000, binh_tan:true,  quan_6:true},
+    {ten:'Bánh bao gạo lứt không nhân',       gia:10000, binh_tan:true,  quan_6:false},
+    {ten:'Bánh bao chay ngũ sắc',             gia:15000, binh_tan:true,  quan_6:false},
+    {ten:'Bánh mì pate chà bông',             gia:15000, binh_tan:true,  quan_6:false},
+    {ten:'Bánh mì xúc xích chà bông',        gia:18000, binh_tan:true,  quan_6:false},
+    {ten:'Bánh mì gà cay chua ngọt',         gia:20000, binh_tan:true,  quan_6:false},
+    {ten:'Bánh mì bò',                        gia:22000, binh_tan:true,  quan_6:false},
+    {ten:'Mì ý bò bằm',                       gia:28000, binh_tan:true,  quan_6:false},
+    {ten:'Mì ý sốt kem nấm thịt xông khói',  gia:28000, binh_tan:true,  quan_6:false},
+    {ten:'Mì ý sốt thanh cua',               gia:28000, binh_tan:true,  quan_6:false},
+    {ten:'Cơm nắm teriyaki',                  gia:15000, binh_tan:true,  quan_6:true},
+    {ten:'Cơm nắm xúc xích phomai tan chảy', gia:17000, binh_tan:true,  quan_6:true},
+    {ten:'Yaourt',                             gia:10000, binh_tan:true,  quan_6:true},
+  ];
+}
+
 // ── doGet ────────────────────────────────────────────────────
 function doGet(e) {
   var params = (e && e.parameter) ? e.parameter : {};
   var result;
   if (params.action === 'lastShift' && params.vi_tri) {
     result = getLastShift(params.vi_tri);
+    writeLog('doGet:lastShift', result.success ? 'ok' : 'error', {vi_tri: params.vi_tri, error: result.error});
+  } else if (params.action === 'getProducts') {
+    result = getAllProducts();
   } else {
     result = {success:true};
+    writeLog('doGet:ping', 'ok', {});
   }
   var json = JSON.stringify(result);
   if (params.callback) {
@@ -100,8 +192,8 @@ function getLastShift(vi_tri) {
 
 // ── doPost: receive shift report ─────────────────────────────
 function doPost(e) {
+  var raw = (e && e.postData) ? e.postData.contents : '{}';
   try {
-    var raw  = (e && e.postData) ? e.postData.contents : '{}';
     var data = JSON.parse(raw);
 
     var vi_tri        = data.vi_tri || '';
@@ -128,13 +220,45 @@ function doPost(e) {
       sheet.setFrozenRows(1);
     }
 
-    sheet.appendRow(buildRow(data, locationProds));
+    var row = buildRow(data, locationProds);
+    sheet.appendRow(row);
+
+    // Compute summary fields for log (mirrors buildRow logic)
+    var nProds   = locationProds.length;
+    var totalRev = 0;
+    locationProds.forEach(function(p, i) {
+      totalRev += Number(row[4 + i * 13 + 12]) || 0;
+    });
+    var baseIdx  = 4 + nProds * 13;
+    var chiPhi   = Number(row[baseIdx + 27 + 9 * 3 - 9 * 3 + 2]) || 0;
+    // easier: re-read from data
+    var chiPhiV  = Number(data.chi_phi) || 0;
+    var dtNHV    = Number(data.dt_nh)   || 0;
+    var tienCuoi = data.tien_cuoi || {};
+    var tongCuoi = 0;
+    DENOMS.forEach(function(d){ tongCuoi += (Number(tienCuoi[d])||0)*d; });
+    var tienDau  = data.tien_dau  || {};
+    var tongDau  = 0;
+    DENOMS.forEach(function(d){ tongDau  += (Number(tienDau[d])||0)*d; });
+    var lechTien = tongCuoi - (tongDau + (totalRev - dtNHV) - chiPhiV);
+
+    writeLog('doPost', 'ok', {
+      vi_tri:   vi_tri,
+      ngay:     data.ngay   || '',
+      ten:      data.ten    || '',
+      totalRev: totalRev,
+      chiPhi:   chiPhiV,
+      dtNH:     dtNHV,
+      lechTien: lechTien,
+      ghi_chu:  data.ghi_chu || '',
+    }, raw);
 
     return ContentService
       .createTextOutput(JSON.stringify({success:true, message:'Đã lưu ca thành công!'}))
       .setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
+    writeLog('doPost', 'ERROR', {error: err.toString()}, raw);
     return ContentService
       .createTextOutput(JSON.stringify({success:false, error:err.toString()}))
       .setMimeType(ContentService.MimeType.JSON);

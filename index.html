@@ -124,30 +124,17 @@ const INIT = () => {
   };
 };
 
-const STORAGE_KEY    = 'ca_v2';
-const USER_KEY       = 'ca_user';
-const SPREADSHEET_ID = '1EfEAvuYPyf3GWVbi7egfR6SI3riNKPsCiVW0OFZLpg8';
+const STORAGE_KEY = 'ca_v2';
+const USER_KEY    = 'ca_user';
 
-// Đọc san_pham sheet — trả về toàn bộ sản phẩm (kèm cột địa điểm)
 function fetchAllProducts() {
-  var url = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID
-          + '/gviz/tq?tqx=out:json&sheet=san_pham';
-  return fetch(url)
-    .then(function(r){ return r.text(); })
-    .then(function(text){
-      var m = text.match(/setResponse\(([\s\S]*)\)/);
-      if (!m) return null;
-      var resp = JSON.parse(m[1]);
-      if (resp.status !== 'ok' || !resp.table || !resp.table.rows.length) return null;
-      return resp.table.rows
-        .map(function(row){
-          var ten = row.c[0]&&row.c[0].v ? String(row.c[0].v) : '';
-          var gia = row.c[1]&&row.c[1].v ? Number(row.c[1].v) : 0;
-          var bt  = !!(row.c[2]&&row.c[2].v==='x');
-          var q6  = !!(row.c[3]&&row.c[3].v==='x');
-          return {ten, gia, short:productShort(ten), emoji:productEmoji(ten), binh_tan:bt, quan_6:q6};
-        })
-        .filter(function(p){ return p.ten; });
+  return fetch(GAS_URL + '?action=getProducts')
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (!res.success || !res.products) return null;
+      return res.products.map(function(p){
+        return {ten:p.ten, gia:p.gia, short:productShort(p.ten), emoji:productEmoji(p.ten), binh_tan:p.binh_tan, quan_6:p.quan_6};
+      });
     });
 }
 
