@@ -833,13 +833,16 @@ function Hub({data, setData, setScreen, prevData, products, authUser, onLogout})
       <div className="app-bar" style={{background:'var(--ink)',borderBottom:0,color:'#fff'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div>
-            <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>{data.ngay} · {data.vi_tri||'Chưa mở ca'}</div>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <span style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>{data.ngay} · {data.vi_tri||'Chưa mở ca'}</span>
+              {!editing&&(
+                <button onClick={()=>setEditing(true)} style={{padding:'1px 7px',borderRadius:6,background:'rgba(255,255,255,.15)',color:'rgba(255,255,255,.7)',fontSize:11,fontWeight:700,border:0,cursor:'pointer',letterSpacing:.5}}>✎ đổi</button>
+              )}
+            </div>
             <h1 style={{color:'#fff',fontSize:19,marginTop:2}}>{authUser?.name?`Ca của ${authUser.name}`:'Kiểm kê ca'}</h1>
           </div>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            {!editing&&data.vi_tri&&(
-              <button onClick={()=>setEditing(true)} style={{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,.15)',color:'#fff',fontSize:16,border:0,cursor:'pointer',flexShrink:0}}>✎</button>
-            )}
+
             <button onClick={()=>{ if(window.confirm('Đăng xuất?')) onLogout(); }}
               title={authUser&&authUser.email}
               style={{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,.15)',color:'#fff',fontSize:15,border:0,cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
