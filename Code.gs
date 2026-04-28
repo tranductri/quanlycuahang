@@ -127,6 +127,19 @@ function fallbackAllProducts() {
   ];
 }
 
+// ── Whitelist from users sheet ────────────────────────────────
+function getUsers(ss) {
+  try {
+    var sheet = ss.getSheetByName('users');
+    if (!sheet || sheet.getLastRow() < 1) return {success:true, emails:[]};
+    var rows   = sheet.getRange(1, 1, sheet.getLastRow(), 1).getValues();
+    var emails = rows.map(function(r){ return String(r[0]).trim().toLowerCase(); }).filter(Boolean);
+    return {success:true, emails:emails};
+  } catch(e) {
+    return {success:false, error:e.toString()};
+  }
+}
+
 // ── doGet ────────────────────────────────────────────────────
 function doGet(e) {
   var params = (e && e.parameter) ? e.parameter : {};
@@ -137,6 +150,8 @@ function doGet(e) {
     writeLog(ss, 'doGet:lastShift', result.success ? 'ok' : 'error', {vi_tri: params.vi_tri, error: result.error});
   } else if (params.action === 'getProducts') {
     result = getAllProducts(ss);
+  } else if (params.action === 'getUsers') {
+    result = getUsers(ss);
   } else {
     result = {success:true};
   }

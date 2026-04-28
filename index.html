@@ -131,10 +131,6 @@ const AUTH_KEY    = 'ca_auth';
 
 const GIS_CLIENT_ID = '570458211298-ogrk61hf89ou38l8q6lt9pba0qi2p969.apps.googleusercontent.com';
 
-const WHITELIST = [
-  'tdtri281090@gmail.com',
-  'truongphuongchi2525@gmail.com',
-];
 
 /* ─── LOGIN ─── */
 function Login({ onSuccess }) {
@@ -935,9 +931,14 @@ function App() {
   const handleAuthSuccess = async credentialResponse => {
     try {
       const token = credentialResponse.credential;
-      const res   = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + token);
-      const info  = await res.json();
-      if (!info.email || !WHITELIST.includes(info.email)) {
+      const [tokenRes, usersRes] = await Promise.all([
+        fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + token),
+        fetch(GAS_URL + '?action=getUsers'),
+      ]);
+      const info    = await tokenRes.json();
+      const usersData = await usersRes.json();
+      const whitelist = (usersData.emails || []).map(e => e.toLowerCase());
+      if (!info.email || !whitelist.includes(info.email.toLowerCase())) {
         alert('Tài khoản ' + (info.email||'') + ' không có quyền truy cập.');
         return;
       }
