@@ -66,6 +66,7 @@
     .toast{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:999px;font-size:15px;font-weight:600;z-index:200;white-space:nowrap;box-shadow:var(--shadow-md);animation:toastIn .2s ease-out}
     .toast.ok{background:var(--ok)}.toast.err{background:var(--err)}
     @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
@@ -190,7 +191,7 @@ const DAU_ZONES = [
 ];
 const noNeg = e => { if(e.key==='-'||e.key==='e'||e.key==='E') e.preventDefault(); };
 
-function DauCa({data, setData, onBack, onDone, prevData, products}) {
+function DauCa({data, setData, onBack, onDone, prevData, prevLoading, products}) {
   const upd = (idx,k,val) => {
     const ps=[...data.products]; ps[idx]={...(ps[idx]||{}),[k]:val}; setData({...data,products:ps});
   };
@@ -217,6 +218,12 @@ function DauCa({data, setData, onBack, onDone, prevData, products}) {
           <div style={{width:`${products.length?(filled/products.length)*100:0}%`}}/>
         </div>
       </div>
+      {prevLoading&&(
+        <div style={{flexShrink:0,background:'var(--warn-soft)',borderBottom:'1px solid var(--line)',padding:'8px 16px',display:'flex',alignItems:'center',gap:8}}>
+          <span style={{display:'inline-block',width:14,height:14,borderRadius:'50%',border:'2px solid var(--warn)',borderTopColor:'transparent',animation:'spin .8s linear infinite',flexShrink:0}}/>
+          <span style={{fontSize:13,color:'var(--warn)',fontWeight:600}}>Đang tải dữ liệu ca trước…</span>
+        </div>
+      )}
       <div className="scroll-area" style={{padding:'10px 12px 24px'}}>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           {products.map(p=>{
@@ -963,6 +970,7 @@ function AppContent({ authUser, onLogout }) {
   const [submitting,  setSubmitting]= useState(false);
   const [hasUpdate,   setHasUpdate] = useState(false);
   const [prevData,    setPrevData]  = useState(null);
+  const [prevLoading, setPrevLoading] = useState(false);
   const [allProducts, setAllProducts]= useState(null);
 
   useEffect(()=>{
@@ -1017,9 +1025,12 @@ function AppContent({ authUser, onLogout }) {
   // Fetch previous shift when location is ready
   useEffect(()=>{
     if (!data.vi_tri) return;
+    setPrevLoading(true);
+    setPrevData(null);
     fetchLastShift(data.vi_tri)
       .then(res=>{ if (res.success && res.products) setPrevData(res.products); })
-      .catch(()=>{});
+      .catch(()=>{})
+      .finally(()=>setPrevLoading(false));
   }, [data.vi_tri]);
 
   // Products visible at current location — idx = allProducts position, locIdx = position in filtered list
@@ -1065,7 +1076,7 @@ function AppContent({ authUser, onLogout }) {
         </div>
       )}
       {screen==='hub'       &&<Hub      data={data} setData={setData} setScreen={nav} prevData={prevData} products={locationProducts} authUser={authUser} onLogout={onLogout}/>}
-      {screen==='dau'       &&<DauCa    data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>{ setData({...data, dau_ca_done:true}); nav('hub'); }} prevData={prevData} products={locationProducts}/>}
+      {screen==='dau'       &&<DauCa    data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>{ setData({...data, dau_ca_done:true}); nav('hub'); }} prevData={prevData} prevLoading={prevLoading} products={locationProducts}/>}
       {screen==='trong'     &&<TrongCa  data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')} products={locationProducts}/>}
       {screen==='cuoi'      &&<CuoiCa   data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')} products={locationProducts}/>}
       {screen==='tien-dau'  &&<Tien mode="dau"  data={data} setData={setData} onBack={()=>nav('hub')}      onDone={()=>nav('hub')} products={locationProducts}/>}
