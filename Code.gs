@@ -154,9 +154,11 @@ function doGet(e) {
 // ── Get last submitted shift for a location ──────────────────
 function getLastShift(ss, vi_tri) {
   try {
+    var sheetName     = getSheetName(vi_tri);
     var locationProds = getProductsForLocation(ss, vi_tri);
-    var sheet = ss.getSheetByName(getSheetName(vi_tri));
-    if (!sheet || sheet.getLastRow() < 2) return {success:false};
+    var sheet         = ss.getSheetByName(sheetName);
+    if (!sheet)                  return {success:false, error:'Sheet "' + sheetName + '" chưa tồn tại'};
+    if (sheet.getLastRow() < 2)  return {success:false, error:'Sheet "' + sheetName + '" chưa có dữ liệu'};
     var rows  = sheet.getDataRange().getValues();
     var last  = rows[rows.length - 1];
     var products = locationProds.map(function(prod, i) {
