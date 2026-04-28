@@ -127,12 +127,30 @@ const INIT = () => {
   };
 };
 
-const STORAGE_KEY = 'ca_v2';
-const USER_KEY    = 'ca_user';
+const STORAGE_KEY    = 'ca_v2';
+const USER_KEY       = 'ca_user';
+const SPREADSHEET_ID = '1EfEAvuYPyf3GWVbi7egfR6SI3riNKPsCiVW0OFZLpg8';
 
+// Đọc trực tiếp từ docs.google.com/gviz/tq — có CORS headers chuẩn, không qua GAS echo redirect
+// Yêu cầu: spreadsheet phải được share "Anyone with the link can view"
 function fetchLastShift(vi_tri) {
-  return fetch(GAS_URL, {method:'POST', body:JSON.stringify({action:'lastShift', vi_tri:vi_tri})})
-    .then(r => r.json());
+  var tq  = "select * where C = '" + vi_tri.replace(/'/g, "\\'") + "'";
+  var url = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID
+          + '/gviz/tq?tqx=out:json&tq=' + encodeURIComponent(tq) + '&sheet=ca_lam_viec';
+  return fetch(url)
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      var m = text.match(/setResponse\(([\s\S]*)\)/);
+      if (!m) return {success:false};
+      var resp = JSON.parse(m[1]);
+      if (resp.status !== 'ok' || !resp.table || !resp.table.rows.length) return {success:false};
+      var row = resp.table.rows[resp.table.rows.length - 1].c;
+      var products = PRODUCTS.map(function(_, p) {
+        var cell = row[4 + p * 13 + 8];
+        return {cuoi_thuc: (cell && cell.v !== null && cell.v !== undefined) ? Number(cell.v) : undefined};
+      });
+      return {success:true, products:products};
+    });
 }
 
 const saveUser = (ten, vi_tri) => {
