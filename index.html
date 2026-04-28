@@ -9,6 +9,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1c1614">
   <link rel="apple-touch-icon" href="icon-192.png">
+  <script src="https://accounts.google.com/gsi/client" async></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -126,6 +127,42 @@ const INIT = () => {
 
 const STORAGE_KEY = 'ca_v2';
 const USER_KEY    = 'ca_user';
+const AUTH_KEY    = 'ca_auth';
+
+const GIS_CLIENT_ID = ''; // TODO: điền OAuth client_id từ Google Cloud Console
+
+const WHITELIST = [
+  'tdtri281090@gmail.com',
+  // thêm email nhân viên vào đây
+];
+
+/* ─── LOGIN ─── */
+function Login({ onSuccess }) {
+  useEffect(() => {
+    const init = () => {
+      google.accounts.id.initialize({ client_id: GIS_CLIENT_ID, callback: onSuccess });
+      google.accounts.id.renderButton(
+        document.getElementById('g-signin-btn'),
+        { theme: 'outline', size: 'large', text: 'signin_with', locale: 'vi', width: 280 }
+      );
+      google.accounts.id.prompt();
+    };
+    if (window.google) { init(); return; }
+    const t = setInterval(() => { if (window.google) { clearInterval(t); init(); } }, 100);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div style={{height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:32,padding:32,background:'var(--paper)'}}>
+      <div style={{textAlign:'center'}}>
+        <div style={{fontSize:48,marginBottom:12}}>🥐</div>
+        <h1 style={{fontSize:24,fontWeight:800,letterSpacing:'-.5px',marginBottom:6}}>Kiểm Kê Ca</h1>
+        <p style={{color:'var(--muted)',fontSize:14}}>Đăng nhập bằng tài khoản Google của cửa hàng</p>
+      </div>
+      <div id="g-signin-btn" />
+    </div>
+  );
+}
 
 function fetchAllProducts() {
   return fetch(GAS_URL + '?action=getProducts')
@@ -725,7 +762,7 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting, products}) {
 }
 
 /* ─── HUB ─── */
-function Hub({data, setData, setScreen, prevData, products}) {
+function Hub({data, setData, setScreen, prevData, products, authUser, onLogout}) {
   const [editing, setEditing] = useState(!(data.ten&&data.vi_tri));
   const tienDauTotal = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
   const tienCuoiTotal= DENOMS.reduce((s,d)=>s+(data.tien_cuoi?.[d]||0)*d,0);
@@ -803,9 +840,18 @@ function Hub({data, setData, setScreen, prevData, products}) {
             <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>{data.ngay} · {data.vi_tri||'Chưa mở ca'}</div>
             <h1 style={{color:'#fff',fontSize:19,marginTop:2}}>{data.ten?`Ca của ${data.ten}`:'Kiểm kê ca'}</h1>
           </div>
-          {!editing&&data.ten&&(
-            <button onClick={()=>setEditing(true)} style={{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,.15)',color:'#fff',fontSize:16,border:0,cursor:'pointer',flexShrink:0}}>✎</button>
-          )}
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            {!editing&&data.ten&&(
+              <button onClick={()=>setEditing(true)} style={{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,.15)',color:'#fff',fontSize:16,border:0,cursor:'pointer',flexShrink:0}}>✎</button>
+            )}
+            <button onClick={()=>{ if(window.confirm('Đăng xuất?')) onLogout(); }}
+              title={authUser&&authUser.email}
+              style={{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,.15)',color:'#fff',fontSize:15,border:0,cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+              {authUser&&authUser.picture
+                ? <img src={authUser.picture} style={{width:28,height:28,borderRadius:'50%',display:'block'}} referrerPolicy="no-referrer"/>
+                : '↩'}
+            </button>
+          </div>
         </div>
       </div>
       <div className="scroll-area" style={{padding:'16px 14px 100px'}}>
@@ -882,6 +928,38 @@ function Hub({data, setData, setScreen, prevData, products}) {
 
 /* ─── APP ─── */
 function App() {
+  const [authUser, setAuthUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; }
+  });
+
+  const handleAuthSuccess = async credentialResponse => {
+    try {
+      const token = credentialResponse.credential;
+      const res   = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + token);
+      const info  = await res.json();
+      if (!info.email || !WHITELIST.includes(info.email)) {
+        alert('Tài khoản ' + (info.email||'') + ' không có quyền truy cập.');
+        return;
+      }
+      const user = { email: info.email, name: info.name, picture: info.picture };
+      localStorage.setItem(AUTH_KEY, JSON.stringify(user));
+      setAuthUser(user);
+    } catch(e) {
+      alert('Đăng nhập thất bại: ' + e.message);
+    }
+  };
+
+  const handleLogout = () => {
+    if (window.google) google.accounts.id.disableAutoSelect();
+    localStorage.removeItem(AUTH_KEY);
+    setAuthUser(null);
+  };
+
+  if (!authUser) return <Login onSuccess={handleAuthSuccess} />;
+  return <AppContent authUser={authUser} onLogout={handleLogout} />;
+}
+
+function AppContent({ authUser, onLogout }) {
   const [data, setDataRaw] = useState(()=>{
     try { const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):INIT(); } catch { return INIT(); }
   });
@@ -984,7 +1062,7 @@ function App() {
           </button>
         </div>
       )}
-      {screen==='hub'       &&<Hub      data={data} setData={setData} setScreen={nav} prevData={prevData} products={locationProducts}/>}
+      {screen==='hub'       &&<Hub      data={data} setData={setData} setScreen={nav} prevData={prevData} products={locationProducts} authUser={authUser} onLogout={onLogout}/>}
       {screen==='dau'       &&<DauCa    data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>{ setData({...data, dau_ca_done:true}); nav('hub'); }} prevData={prevData} products={locationProducts}/>}
       {screen==='trong'     &&<TrongCa  data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')} products={locationProducts}/>}
       {screen==='cuoi'      &&<CuoiCa   data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')} products={locationProducts}/>}
