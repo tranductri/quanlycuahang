@@ -127,39 +127,12 @@ const INIT = () => {
   };
 };
 
-const STORAGE_KEY    = 'ca_v2';
-const USER_KEY       = 'ca_user';
-const prevKey        = loc => `ca_prev_${loc}`;
-const SPREADSHEET_ID = '1EfEAvuYPyf3GWVbi7egfR6SI3riNKPsCiVW0OFZLpg8';
+const STORAGE_KEY = 'ca_v2';
+const USER_KEY    = 'ca_user';
 
-// Dùng Google Sheets gviz/tq JSONP — không qua GAS echo redirect, không bị ORB/CORS
 function fetchLastShift(vi_tri) {
-  return new Promise(function(resolve, reject) {
-    var cb  = '__gviz_' + Date.now();
-    var tq  = "select * where C = '" + vi_tri.replace(/'/g, "\\'") + "'";
-    var url = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID
-            + '/gviz/tq?tqx=' + encodeURIComponent('out:json,responseHandler:' + cb)
-            + '&tq='          + encodeURIComponent(tq)
-            + '&sheet=ca_lam_viec';
-    window[cb] = function(resp) {
-      cleanup();
-      if (resp.status === 'ok' && resp.table && resp.table.rows.length > 0) {
-        var row = resp.table.rows[resp.table.rows.length - 1].c;
-        var products = PRODUCTS.map(function(_, p) {
-          var cell = row[4 + p * 13 + 8];
-          return {cuoi_thuc: (cell && cell.v !== null && cell.v !== undefined) ? Number(cell.v) : undefined};
-        });
-        resolve({success: true, products: products});
-      } else {
-        resolve({success: false});
-      }
-    };
-    var s = document.createElement('script');
-    s.src = url;
-    s.onerror = function() { cleanup(); reject(new Error('gviz failed')); };
-    document.head.appendChild(s);
-    function cleanup() { delete window[cb]; if (s.parentNode) s.parentNode.removeChild(s); }
-  });
+  return fetch(GAS_URL + '?action=lastShift&vi_tri=' + encodeURIComponent(vi_tri))
+    .then(r => r.json());
 }
 
 const saveUser = (ten, vi_tri) => {
@@ -193,24 +166,17 @@ const DAU_ZONES = [
 ];
 const noNeg = e => { if(e.key==='-'||e.key==='e'||e.key==='E') e.preventDefault(); };
 
-function DauCa({data, setData, onBack, onDone}) {
+function DauCa({data, setData, onBack, onDone, prevData, setPrevData}) {
   const upd = (i,k,val) => {
     const ps=[...data.products]; ps[i]={...ps[i],[k]:val}; setData({...data,products:ps});
   };
   const filled = data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0).length;
 
-  const [prevData, setPrevData] = useState(()=>{ try { return JSON.parse(localStorage.getItem(prevKey(data.vi_tri))||'null'); } catch { return null; } });
-
   React.useEffect(()=>{
     if (!data.vi_tri) return;
     fetchLastShift(data.vi_tri)
-      .then(function(res) {
-        if (res.success && res.products) {
-          setPrevData(res.products);
-          try { localStorage.setItem(prevKey(data.vi_tri), JSON.stringify(res.products)); } catch {}
-        }
-      })
-      .catch(function(){});
+      .then(res => { if (res.success && res.products) setPrevData(res.products); })
+      .catch(()=>{});
   }, [data.vi_tri]);
 
   const lechCount = prevData ? data.products.filter((v,i)=>{
@@ -655,12 +621,11 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
 }
 
 /* ─── HUB ─── */
-function Hub({data, setData, setScreen}) {
+function Hub({data, setData, setScreen, prevData}) {
   const [editing, setEditing] = useState(!(data.ten&&data.vi_tri));
   const tienDauTotal = DENOMS.reduce((s,d)=>s+(data.tien_dau?.[d]||0)*d,0);
   const tienCuoiTotal= DENOMS.reduce((s,d)=>s+(data.tien_cuoi?.[d]||0)*d,0);
   const hangDone    = data.dau_ca_done;
-  const prevData    = React.useMemo(()=>{ try { return JSON.parse(localStorage.getItem(prevKey(data.vi_tri))||'null'); } catch { return null; } }, [data.vi_tri]);
   const dauLechCount= hangDone&&prevData ? data.products.filter((v,i)=>{ const pt=prevData[i]?.cuoi_thuc; if(pt===undefined||pt==='') return false; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)!==Number(pt); }).length : 0;
   const tienDauDone = tienDauTotal>0;
   const tienCuoiDone= tienCuoiTotal>0;
@@ -774,6 +739,7 @@ function App() {
   const [toast,      setToast]     = useState(null);
   const [submitting, setSubmitting]= useState(false);
   const [hasUpdate,  setHasUpdate] = useState(false);
+  const [prevData,   setPrevData]  = useState(null);
 
   useEffect(()=>{
     if (!('serviceWorker' in navigator)) return;
@@ -810,9 +776,6 @@ function App() {
     setSubmitting(true);
     try {
       await fetch(GAS_URL, {method:'POST', body:JSON.stringify(data)});
-      if (data.vi_tri) {
-        try { localStorage.setItem(prevKey(data.vi_tri), JSON.stringify(data.products.map(v=>({cuoi_thuc:v.cuoi_thuc})))); } catch {}
-      }
       showToast('✓ Đã gửi báo cáo ca!', 'ok');
       setTimeout(()=>{ localStorage.removeItem(STORAGE_KEY); setDataRaw(INIT()); setScreen('hub'); }, 2000);
     } catch(e) {
@@ -835,8 +798,8 @@ function App() {
           </button>
         </div>
       )}
-      {screen==='hub'       &&<Hub      data={data} setData={setData} setScreen={nav}/>}
-      {screen==='dau'       &&<DauCa    data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>{ setData({...data, dau_ca_done:true}); nav('hub'); }}/>}
+      {screen==='hub'       &&<Hub      data={data} setData={setData} setScreen={nav} prevData={prevData}/>}
+      {screen==='dau'       &&<DauCa    data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>{ setData({...data, dau_ca_done:true}); nav('hub'); }} prevData={prevData} setPrevData={setPrevData}/>}
       {screen==='trong'     &&<TrongCa  data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')}/>}
       {screen==='cuoi'      &&<CuoiCa   data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')}/>}
       {screen==='tien-dau'  &&<Tien mode="dau"  data={data} setData={setData} onBack={()=>nav('hub')}      onDone={()=>nav('hub')}/>}
