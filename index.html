@@ -775,6 +775,42 @@ function Hub({data, setData, setScreen, prevData, products}) {
   const filledCount = products.filter(p=>{ const v=data.products[p.idx]||{}; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0; }).length;
   const cuoiCount   = products.filter(p=>{ const v=data.products[p.idx]||{}; return v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''; }).length;
   const nP          = products.length;
+
+  const resetStep = key => {
+    let next;
+    if (key === 'dau-hang') {
+      const ps = data.products.map(v=>{ const {dau_h1,dau_h2,dau_kho,dau_cu,...r}=v; return r; });
+      next = {...data, products:ps, dau_ca_done:false};
+    } else if (key === 'tien-dau') {
+      next = {...data, tien_dau:{}};
+    } else if (key === 'trong') {
+      const ps = data.products.map(v=>{ const {xuat,nhap,hu,km,...r}=v; return r; });
+      next = {...data, products:ps};
+    } else if (key === 'cuoi-hang') {
+      const ps = data.products.map(v=>{ const {cuoi_kho,cuoi_hop,cuoi_thuc,...r}=v; return r; });
+      next = {...data, products:ps};
+    } else if (key === 'tien-cuoi') {
+      next = {...data, tien_cuoi:{}, chi_phi:0, dt_nh:0};
+    } else if (key === 'giao') {
+      next = {...data, cat_dt:{}, ghi_chu:''};
+    }
+    if (next) setData(next);
+  };
+
+  const resetSteps = [
+    { key:'dau-hang',  label:'Kiểm hàng đầu ca',
+      has: products.some(p=>{ const v=data.products[p.idx]||{}; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0; }) },
+    { key:'tien-dau',  label:'Tiền đầu ca',
+      has: Object.values(data.tien_dau||{}).some(n=>n>0) },
+    { key:'trong',     label:'Trong ca (xuất / nhập / hư / KM)',
+      has: products.some(p=>{ const v=data.products[p.idx]||{}; return (v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)>0; }) },
+    { key:'cuoi-hang', label:'Kiểm hàng cuối ca',
+      has: products.some(p=>(data.products[p.idx]||{}).cuoi_thuc!==undefined) },
+    { key:'tien-cuoi', label:'Tiền cuối ca',
+      has: Object.values(data.tien_cuoi||{}).some(n=>n>0)||(data.chi_phi||0)>0||(data.dt_nh||0)>0 },
+    { key:'giao',      label:'Cất doanh thu / Ghi chú',
+      has: Object.values(data.cat_dt||{}).some(n=>n>0)||(data.ghi_chu||'')!=='' },
+  ];
   const sections = [
     { label:'Đầu ca', tiles:[
       {key:'dau',      title:'Kiểm hàng', icon:'📦', done:hangDone&&dauLechCount===0, warn:hangDone&&dauLechCount>0,
@@ -860,11 +896,30 @@ function Hub({data, setData, setScreen, prevData, products}) {
             </div>
           ))}
         </div>
-        <div style={{marginTop:10}}>
-          <button className="btn-ghost" style={{height:48,color:'var(--err)',borderColor:'var(--err-soft)'}}
-            onClick={()=>{ if(window.confirm('Xoá toàn bộ dữ liệu ca này và bắt đầu lại?')) { localStorage.removeItem(STORAGE_KEY); setData(INIT()); }}}>
-            🗑 Xoá dữ liệu / Làm ca mới
-          </button>
+        <div style={{marginTop:16}}>
+          <div className="h-section" style={{marginBottom:8}}>Xoá dữ liệu</div>
+          <div className="m-card" style={{padding:8}}>
+            {resetSteps.map((s,i)=>(
+              <div key={s.key} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 8px',
+                borderBottom:i<resetSteps.length-1?'1px solid var(--line)':'none'}}>
+                <div style={{flex:1,fontSize:13,fontWeight:600,color:s.has?'var(--ink)':'var(--muted)'}}>{s.label}</div>
+                <span style={{fontSize:11,fontWeight:600,color:s.has?'var(--ok)':'var(--line-2)'}}>{s.has?'Có dữ liệu':'Trống'}</span>
+                <button disabled={!s.has}
+                  onClick={()=>{ if(window.confirm(`Xoá "${s.label}"?`)) resetStep(s.key); }}
+                  style={{padding:'5px 12px',borderRadius:8,border:0,fontSize:12,fontWeight:700,
+                    background:s.has?'var(--err-soft)':'var(--paper-2)',
+                    color:s.has?'var(--err)':'var(--line-2)',cursor:s.has?'pointer':'default'}}>
+                  Xoá
+                </button>
+              </div>
+            ))}
+            <div style={{marginTop:8}}>
+              <button className="btn-ghost" style={{height:44,color:'var(--err)',borderColor:'var(--err-soft)',fontSize:14}}
+                onClick={()=>{ if(window.confirm('Xoá toàn bộ dữ liệu ca này và bắt đầu lại?')) { localStorage.removeItem(STORAGE_KEY); setData(INIT()); }}}>
+                🗑 Xoá toàn bộ / Làm ca mới
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
