@@ -26,7 +26,7 @@ git add index.html && git commit -m "..." && git push
 **Backend (Code.gs)** — ALWAYS update the existing deployment, never create a new one:
 ```bash
 clasp push
-clasp deploy --deploymentId AKfycbzERKnyl2g_zyT3zseP_0kOaqjvzCrGKCT4BOkvcFdE36qulwGTgRJlWS0hVFAaxoRJjg --description "vN: description"
+clasp deploy --deploymentId AKfycby42dT2SZJ8vGE4Ogk4UUQrodeNTtBFLKluCpflM1jletffFLXbfHXuiID8W90uqoHjpA --description "vN: description"
 ```
 
 **Do NOT run `clasp deploy` without `--deploymentId`** — it creates a new deployment that requires manual re-authorization in the GAS console before it works (shows CORS error until authorized). The GAS_URL in `index.html` must stay pointing to the fixed deployment ID above; no need to update it on each deploy.
