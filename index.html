@@ -72,7 +72,7 @@
 <script type="text/babel">
 const { useState, useEffect } = React;
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbztt-nY18izDRMGj8uklePbARgmU47YyML5R_5dguD6M__dny4FmKNoK0mnFJyx8YMmJQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwenRz1KzDca59jFMuAfdvH28jGxKdp0kmWP1PXkU3k6-1QEH5XpNZiIvqyKng8B034yg/exec';
 
 const PRODUCTS = [
   {ten:'Bánh bao xúc xích phomai',       short:'BB xúc xích phomai',  gia:20000, emoji:'🥟'},
@@ -168,23 +168,7 @@ function DauCa({data, setData, onBack, onDone}) {
   };
   const filled = data.products.filter(v=>(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0).length;
 
-  const [prevData, setPrevData] = useState(()=>{ try { return JSON.parse(localStorage.getItem(prevKey(data.vi_tri))||'null'); } catch { return null; } });
-  const [prevLoading, setPrevLoading] = useState(false);
-
-  React.useEffect(()=>{
-    if (!data.vi_tri) return;
-    setPrevLoading(true);
-    fetch(GAS_URL, {method:'POST', body:JSON.stringify({action:'lastShift', vi_tri:data.vi_tri})})
-      .then(r=>r.json())
-      .then(res=>{
-        if (res.success && res.products) {
-          setPrevData(res.products);
-          try { localStorage.setItem(prevKey(data.vi_tri), JSON.stringify(res.products)); } catch {}
-        }
-      })
-      .catch(()=>{})
-      .finally(()=>setPrevLoading(false));
-  }, [data.vi_tri]);
+  const prevData = React.useMemo(()=>{ try { return JSON.parse(localStorage.getItem(prevKey(data.vi_tri))||'null'); } catch { return null; } }, [data.vi_tri]);
 
   const lechCount = prevData ? data.products.filter((v,i)=>{
     const pt=prevData[i]?.cuoi_thuc; if(pt===undefined||pt===null) return false;
@@ -201,7 +185,6 @@ function DauCa({data, setData, onBack, onDone}) {
             <h1 style={{fontSize:18,marginTop:2}}>Kiểm hàng đầu ca</h1>
           </div>
           <div className="chip chip-accent">{filled}/{PRODUCTS.length}</div>
-          {prevLoading&&<div style={{fontSize:11,opacity:.6}}>⏳</div>}
         </div>
         <div className="progress" style={{marginTop:12}}>
           <div style={{width:`${(filled/PRODUCTS.length)*100}%`}}/>
