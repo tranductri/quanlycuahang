@@ -797,37 +797,37 @@ function Hub({data, setData, setScreen, prevData, products}) {
     if (next) setData(next);
   };
 
-  const resetSteps = [
-    { key:'dau-hang',  label:'Kiểm hàng đầu ca',
-      has: products.some(p=>{ const v=data.products[p.idx]||{}; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0; }) },
-    { key:'tien-dau',  label:'Tiền đầu ca',
-      has: Object.values(data.tien_dau||{}).some(n=>n>0) },
-    { key:'trong',     label:'Trong ca (xuất / nhập / hư / KM)',
-      has: products.some(p=>{ const v=data.products[p.idx]||{}; return (v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)>0; }) },
-    { key:'cuoi-hang', label:'Kiểm hàng cuối ca',
-      has: products.some(p=>(data.products[p.idx]||{}).cuoi_thuc!==undefined) },
-    { key:'tien-cuoi', label:'Tiền cuối ca',
-      has: Object.values(data.tien_cuoi||{}).some(n=>n>0)||(data.chi_phi||0)>0||(data.dt_nh||0)>0 },
-    { key:'giao',      label:'Cất doanh thu / Ghi chú',
-      has: Object.values(data.cat_dt||{}).some(n=>n>0)||(data.ghi_chu||'')!=='' },
-  ];
+  const [deleting, setDeleting] = useState(null); // { key, count }
+  useEffect(()=>{
+    if (!deleting) return;
+    if (deleting.count === 0) { resetStep(deleting.key); setDeleting(null); return; }
+    const t = setTimeout(()=>setDeleting(d=>d?{...d,count:d.count-1}:null), 1000);
+    return ()=>clearTimeout(t);
+  }, [deleting]);
+
   const sections = [
     { label:'Đầu ca', tiles:[
-      {key:'dau',      title:'Kiểm hàng', icon:'📦', done:hangDone&&dauLechCount===0, warn:hangDone&&dauLechCount>0,
+      {key:'dau',      resetKey:'dau-hang',  hasData:filledCount>0,
+       title:'Kiểm hàng', icon:'📦', done:hangDone&&dauLechCount===0, warn:hangDone&&dauLechCount>0,
        sub:hangDone?(dauLechCount>0?`⚠ ${dauLechCount} sản phẩm lệch ca trước`:`${filledCount}/${nP} sản phẩm đã đếm`):'Đếm tồn hàng + bánh cũ'},
-      {key:'tien-dau', title:'Kiểm tiền', icon:'💵', done:tienDauDone,
+      {key:'tien-dau', resetKey:'tien-dau',  hasData:tienDauDone,
+       title:'Kiểm tiền', icon:'💵', done:tienDauDone,
        sub:tienDauDone?`Tổng ${fmt(tienDauTotal)}`:'Đếm tiền mặt tại két'},
     ]},
     { label:'Trong ca', tiles:[
-      {key:'trong', title:'Xuất / Nhập / Hư / KM', icon:'🛒', active:trongActive,
+      {key:'trong',    resetKey:'trong',     hasData:trongActive,
+       title:'Xuất / Nhập / Hư / KM', icon:'🛒', active:trongActive,
        sub:trongActive?`Đang theo dõi · ${fmt(totalRev)}`:'Bấm + mỗi lần có thay đổi'},
     ]},
     { label:'Cuối ca', tiles:[
-      {key:'cuoi',      title:'Kiểm hàng', icon:'🔍', done:cuoiDone,
+      {key:'cuoi',      resetKey:'cuoi-hang', hasData:cuoiCount>0,
+       title:'Kiểm hàng', icon:'🔍', done:cuoiDone,
        sub:cuoiDone?`✓ Đã đếm ${cuoiCount}/${nP}`:`Đã đếm ${cuoiCount}/${nP}`},
-      {key:'tien-cuoi', title:'Kiểm tiền', icon:'💵', done:tienCuoiDone,
+      {key:'tien-cuoi', resetKey:'tien-cuoi', hasData:tienCuoiDone,
+       title:'Kiểm tiền', icon:'💵', done:tienCuoiDone,
        sub:tienCuoiDone?`Tổng ${fmt(tienCuoiTotal)}`:'Đếm tiền mặt cuối ca'},
-      {key:'giao',      title:'Bàn giao',  icon:'📋',
+      {key:'giao',      resetKey:'giao',      hasData:Object.values(data.cat_dt||{}).some(n=>n>0)||(data.ghi_chu||'')!=='',
+       title:'Bàn giao',  icon:'📋',
        sub:'Ký tên xác nhận & gửi báo cáo'},
     ]},
   ];
@@ -872,11 +872,13 @@ function Hub({data, setData, setScreen, prevData, products}) {
             <div key={s.label}>
               <div className="h-section" style={{marginBottom:8}}>{s.label}</div>
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {s.tiles.map(t=>(
-                  <button key={t.key} onClick={()=>setScreen(t.key)} style={{
-                    display:'flex',alignItems:'center',gap:14,padding:'14px 16px',background:'var(--card)',borderRadius:'var(--r-lg)',textAlign:'left',
+                {s.tiles.map(t=>{
+                  const isDel = deleting?.key===t.resetKey;
+                  return (
+                  <div key={t.key} onClick={()=>{ setDeleting(null); setScreen(t.key); }} style={{
+                    display:'flex',alignItems:'center',gap:14,padding:'14px 16px',background:'var(--card)',borderRadius:'var(--r-lg)',
                     border:'1.5px solid '+(t.warn?'var(--warn)':t.done?'var(--ok)':'var(--line)'),
-                    cursor:'pointer'
+                    cursor:'pointer',userSelect:'none'
                   }}>
                     <div style={{width:48,height:48,borderRadius:14,fontSize:24,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',
                       background:t.warn?'var(--warn-soft,#fff3cd)':t.done?'var(--ok-soft)':t.active?'var(--accent-soft)':'var(--paper-2)'}}>{t.icon}</div>
@@ -889,37 +891,31 @@ function Hub({data, setData, setScreen, prevData, products}) {
                       </div>
                       <div style={{fontSize:12,color:t.warn?'var(--warn)':'var(--muted)',marginTop:1}}>{t.sub}</div>
                     </div>
-                    <span style={{color:'var(--muted)',fontSize:20}}>›</span>
-                  </button>
-                ))}
+                    {t.hasData ? (
+                      <button onClick={e=>{ e.stopPropagation(); setDeleting(isDel?null:{key:t.resetKey,count:3}); }}
+                        style={{width:36,height:36,borderRadius:10,flexShrink:0,border:0,cursor:'pointer',
+                          background:isDel?'var(--err)':'var(--err-soft)',
+                          color:isDel?'#fff':'var(--err)',
+                          fontSize:isDel?15:17,fontWeight:800,
+                          display:'flex',alignItems:'center',justifyContent:'center',
+                          transition:'background .15s'}}>
+                        {isDel ? deleting.count : '🗑'}
+                      </button>
+                    ) : (
+                      <span style={{color:'var(--muted)',fontSize:20}}>›</span>
+                    )}
+                  </div>
+                  );
+                })}
               </div>
             </div>
           ))}
         </div>
-        <div style={{marginTop:16}}>
-          <div className="h-section" style={{marginBottom:8}}>Xoá dữ liệu</div>
-          <div className="m-card" style={{padding:8}}>
-            {resetSteps.map((s,i)=>(
-              <div key={s.key} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 8px',
-                borderBottom:i<resetSteps.length-1?'1px solid var(--line)':'none'}}>
-                <div style={{flex:1,fontSize:13,fontWeight:600,color:s.has?'var(--ink)':'var(--muted)'}}>{s.label}</div>
-                <span style={{fontSize:11,fontWeight:600,color:s.has?'var(--ok)':'var(--line-2)'}}>{s.has?'Có dữ liệu':'Trống'}</span>
-                <button disabled={!s.has}
-                  onClick={()=>{ if(window.confirm(`Xoá "${s.label}"?`)) resetStep(s.key); }}
-                  style={{padding:'5px 12px',borderRadius:8,border:0,fontSize:12,fontWeight:700,
-                    background:s.has?'var(--err-soft)':'var(--paper-2)',
-                    color:s.has?'var(--err)':'var(--line-2)',cursor:s.has?'pointer':'default'}}>
-                  Xoá
-                </button>
-              </div>
-            ))}
-            <div style={{marginTop:8}}>
-              <button className="btn-ghost" style={{height:44,color:'var(--err)',borderColor:'var(--err-soft)',fontSize:14}}
-                onClick={()=>{ if(window.confirm('Xoá toàn bộ dữ liệu ca này và bắt đầu lại?')) { localStorage.removeItem(STORAGE_KEY); setData(INIT()); }}}>
-                🗑 Xoá toàn bộ / Làm ca mới
-              </button>
-            </div>
-          </div>
+        <div style={{marginTop:10}}>
+          <button className="btn-ghost" style={{height:48,color:'var(--err)',borderColor:'var(--err-soft)'}}
+            onClick={()=>{ if(window.confirm('Xoá toàn bộ dữ liệu ca này và bắt đầu lại?')) { localStorage.removeItem(STORAGE_KEY); setData(INIT()); }}}>
+            🗑 Xoá toàn bộ / Làm ca mới
+          </button>
         </div>
       </div>
     </div>
