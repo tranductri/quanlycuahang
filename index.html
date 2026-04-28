@@ -411,13 +411,26 @@ function TrongCa({data, setData, onBack, onDone}) {
 }
 
 /* ─── CUỐI CA ─── */
+const CUOI_ZONES = [
+  {k:'cuoi_kho', icon:'📦', label:'Kho'},
+  {k:'cuoi_hop', icon:'🧁', label:'Hộp'},
+];
+
 function CuoiCa({data, setData, onBack, onDone}) {
-  const upd = (i,val) => {
-    const ps=[...data.products]; ps[i]={...ps[i],cuoi_thuc:val}; setData({...data,products:ps});
+  const upd = (i, zk, rawVal) => {
+    const ps   = [...data.products];
+    const prev = ps[i]||{};
+    const val  = rawVal==='' ? undefined : Math.max(0,parseInt(rawVal)||0);
+    const updated = {...prev, [zk]: val};
+    const kho  = zk==='cuoi_kho' ? val : prev.cuoi_kho;
+    const hop  = zk==='cuoi_hop' ? val : prev.cuoi_hop;
+    updated.cuoi_thuc = (kho!==undefined&&hop!==undefined) ? (kho||0)+(hop||0) : undefined;
+    ps[i] = updated;
+    setData({...data,products:ps});
   };
   const rows = PRODUCTS.map((p,i)=>{
     const v=data.products[i]||{};
-    const checked=v.cuoi_thuc!==undefined&&v.cuoi_thuc!=='';
+    const checked=v.cuoi_kho!==undefined&&v.cuoi_hop!==undefined;
     const tieuThu=computeTieuThu(v);
     return {p,i,v,checked,tieuThu};
   });
@@ -436,14 +449,11 @@ function CuoiCa({data, setData, onBack, onDone}) {
           <div style={{background:'rgba(255,255,255,.2)',color:'#fff',padding:'4px 10px',borderRadius:999,fontSize:12,fontWeight:700}}>{doneCount}/{rows.length}</div>
         </div>
       </div>
-      <div className="scroll-area" style={{padding:'12px 14px 24px'}}>
+      <div className="scroll-area" style={{padding:'12px 12px 24px'}}>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           {rows.map(r=>(
-            <div key={r.i} className="m-card" style={{
-              padding:12,
-              borderColor:r.checked?'var(--ok)':'var(--line)',
-              borderWidth:r.checked?1.5:1
-            }}>
+            <div key={r.i} className="m-card" style={{padding:'10px 10px 8px',
+              borderColor:r.checked?'var(--ok)':'var(--line)',borderWidth:r.checked?1.5:1}}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
                 <span style={{fontSize:22}}>{r.p.emoji}</span>
                 <div style={{flex:1,minWidth:0}}>
@@ -453,13 +463,30 @@ function CuoiCa({data, setData, onBack, onDone}) {
                 {r.checked&&<span className="chip chip-ok">✓</span>}
               </div>
               <div style={{display:'flex',gap:10,alignItems:'flex-end'}}>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:10,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700,marginBottom:4}}>Tồn cuối thực tế</div>
-                  <input className="field-input" type="number" inputMode="numeric" min="0"
-                    value={r.v.cuoi_thuc===undefined?'':r.v.cuoi_thuc} placeholder="Nhập số…"
-                    onChange={e=>upd(r.i,e.target.value===''?undefined:Math.max(0,parseInt(e.target.value)||0))}
-                    onFocus={e=>e.target.select()} onKeyDown={noNeg}
-                    style={{height:52,fontSize:20,fontWeight:700,textAlign:'center'}}/>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,flex:1}}>
+                  {CUOI_ZONES.map(z=>{
+                    const cnt=r.v[z.k]; const has=cnt!==undefined;
+                    return (
+                      <div key={z.k} onClick={e=>e.currentTarget.querySelector('input').focus()} style={{
+                        height:72,borderRadius:12,boxSizing:'border-box',
+                        background:has?'var(--ok-soft)':'#fff',
+                        border:'1.5px solid '+(has?'var(--ok)':'var(--line)'),
+                        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+                        padding:'4px 6px',cursor:'text'
+                      }}>
+                        <div style={{fontSize:15,lineHeight:1,marginBottom:1}}>{z.icon}</div>
+                        <input type="number" inputMode="numeric" min="0"
+                          value={cnt===undefined?'':cnt} placeholder="0"
+                          onChange={e=>upd(r.i,z.k,e.target.value)}
+                          onFocus={e=>e.target.select()} onKeyDown={noNeg}
+                          style={{width:'100%',textAlign:'center',fontSize:18,fontWeight:800,
+                            border:0,background:'transparent',color:has?'var(--ok)':'var(--ink)',
+                            lineHeight:1,padding:0,outline:'none',cursor:'text'}}/>
+                        <div style={{fontSize:9,fontWeight:700,marginTop:2,textTransform:'uppercase',
+                          letterSpacing:.5,color:has?'var(--ok)':'var(--muted)'}}>{z.label}</div>
+                      </div>
+                    );
+                  })}
                 </div>
                 {r.checked&&r.tieuThu!==null&&(
                   <div style={{flexShrink:0,textAlign:'right',paddingBottom:2}}>
@@ -469,6 +496,11 @@ function CuoiCa({data, setData, onBack, onDone}) {
                   </div>
                 )}
               </div>
+              {r.checked&&(
+                <div style={{marginTop:6,fontSize:11,color:'var(--muted)',fontWeight:600,textAlign:'right'}}>
+                  Tổng tồn: <span style={{color:'var(--ok)',fontWeight:800}}>{r.v.cuoi_thuc}</span> cái
+                </div>
+              )}
             </div>
           ))}
         </div>
