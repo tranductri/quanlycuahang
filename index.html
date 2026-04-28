@@ -424,13 +424,13 @@ function CuoiCa({data, setData, onBack, onDone}) {
     const updated = {...prev, [zk]: val};
     const kho  = zk==='cuoi_kho' ? val : prev.cuoi_kho;
     const hop  = zk==='cuoi_hop' ? val : prev.cuoi_hop;
-    updated.cuoi_thuc = (kho!==undefined&&hop!==undefined) ? (kho||0)+(hop||0) : undefined;
+    updated.cuoi_thuc = (kho!==undefined||hop!==undefined) ? (kho||0)+(hop||0) : undefined;
     ps[i] = updated;
     setData({...data,products:ps});
   };
   const rows = PRODUCTS.map((p,i)=>{
     const v=data.products[i]||{};
-    const checked=v.cuoi_kho!==undefined&&v.cuoi_hop!==undefined;
+    const checked=v.cuoi_kho!==undefined||v.cuoi_hop!==undefined;
     const tieuThu=computeTieuThu(v);
     return {p,i,v,checked,tieuThu};
   });
