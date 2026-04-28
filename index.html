@@ -19,7 +19,7 @@
       --line:#e6ddd1; --line-2:#d8cbb9; --card:#ffffff;
       --accent:#c1502e; --accent-soft:#f8e6dd; --accent-ink:#7a2e15;
       --ok:#2d6a4f; --ok-soft:#d8efe1;
-      --warn:#b06000;
+      --warn:#b06000; --warn-soft:#fff3cd;
       --err:#c5221f; --err-soft:#fce8e6;
       --shadow-md:0 4px 12px rgba(28,22,20,.08),0 2px 4px rgba(28,22,20,.04);
       --r:14px; --r-lg:20px;
@@ -178,9 +178,9 @@ function Stepper({value, onChange, size='md'}) {
 /* ─── ĐẦU CA ─── */
 const DAU_ZONES = [
   {k:'dau_h1', icon:'🔥', label:'Tủ 1'},
-  {k:'dau_h2', icon:'🔥', label:'Tủ 2'},
-  {k:'dau_kho',icon:'📥', label:'Kho'},
-  {k:'dau_cu', icon:'🧁', label:'Bánh cũ'},
+  {k:'dau_h2', icon:'🌡️', label:'Tủ 2'},
+  {k:'dau_kho',icon:'📦', label:'Kho'},
+  {k:'dau_cu', icon:'🧁', label:'Củ'},
 ];
 const noNeg = e => { if(e.key==='-'||e.key==='e'||e.key==='E') e.preventDefault(); };
 
@@ -208,7 +208,7 @@ function DauCa({data, setData, onBack, onDone, prevData, setPrevData}) {
         <div style={{display:'flex',alignItems:'center',gap:12}}>
           <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'var(--paper-2)',fontSize:22}}>‹</button>
           <div style={{flex:1}}>
-            <div className="h-section">Bước 1 · Đầu ca</div>
+            <div className="h-section">Đầu ca</div>
             <h1 style={{fontSize:18,marginTop:2}}>Kiểm hàng đầu ca</h1>
           </div>
           <div className="chip chip-accent">{filled}/{PRODUCTS.length}</div>
@@ -222,52 +222,53 @@ function DauCa({data, setData, onBack, onDone, prevData, setPrevData}) {
           {PRODUCTS.map((p,i)=>{
             const v=data.products[i]||{};
             const total=(v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0);
+            const pt=prevData?.[i]?.cuoi_thuc;
+            const hasPrev=pt!==undefined&&pt!==null&&pt!=='';
+            const lech=hasPrev?total-Number(pt):null;
+            const isLech=lech!==null&&lech!==0;
             return (
               <div key={i} className="m-card" style={{padding:'10px 10px 8px',
-                border:(total>0?'2px solid var(--ok)':'2px solid transparent')}}>
+                background:isLech?'#fffbeb':'var(--card)',
+                border:isLech?'2px solid var(--warn)':total>0?'2px solid var(--ok)':'1px solid var(--line)'}}>
                 <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
                   <span style={{fontSize:22,lineHeight:1}}>{p.emoji}</span>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:14,fontWeight:700,lineHeight:1.15}}>{p.short}</div>
                     <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{fmt(p.gia)}</div>
                   </div>
-                  {(()=>{
-                    const prev=prevData?.[i]; const pt=prev?.cuoi_thuc;
-                    const lech=(pt!==undefined&&pt!==''&&filled>0)?total-Number(pt):null;
-                    return (
-                      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:3}}>
-                        <div style={{fontSize:11,fontWeight:600,padding:'4px 8px',borderRadius:8,
-                          color:total>0?'var(--ok)':'var(--muted)',
-                          background:total>0?'var(--ok-soft)':'var(--paper-2)'}}>
-                          ∑ <span className="t-num" style={{fontSize:13,fontWeight:800}}>{total||'—'}</span>
-                        </div>
-                        {lech!==null&&<span style={{fontSize:11,fontWeight:700,padding:'2px 7px',borderRadius:6,
-                          background:lech===0?'var(--ok-soft)':'var(--warn-soft,#fff3cd)',
-                          color:lech===0?'var(--ok)':'var(--warn)'}}>
-                          {lech===0?'✓':(lech>0?`+${lech}`:lech)}
-                        </span>}
-                      </div>
-                    );
-                  })()}
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:3}}>
+                    <div style={{fontSize:11,fontWeight:600,padding:'4px 8px',borderRadius:8,
+                      color:total>0?'var(--ok)':'var(--muted)',
+                      background:total>0?'var(--ok-soft)':'var(--paper-2)'}}>
+                      ∑ <span className="t-num" style={{fontSize:13,fontWeight:800}}>{total||'—'}</span>
+                    </div>
+                    {lech!==null&&<span style={{fontSize:11,fontWeight:700,padding:'2px 7px',borderRadius:6,
+                      background:lech===0?'var(--ok-soft)':'var(--warn-soft)',
+                      color:lech===0?'var(--ok)':'var(--warn)'}}>
+                      {lech===0?'✓ khớp':(lech>0?`+${lech} thừa`:`${lech} thiếu`)}
+                    </span>}
+                  </div>
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
                   {DAU_ZONES.map(z=>{
                     const cnt=v[z.k]||0; const has=cnt>0;
                     return (
-                      <div key={z.k} style={{
-                        height:64,borderRadius:12,boxSizing:'border-box',
-                        background:has?'var(--ok-soft)':'var(--paper-2)',
-                        border:'1.5px solid '+(has?'var(--ok)':'transparent'),
-                        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'4px 6px'
+                      <div key={z.k} onClick={e=>e.currentTarget.querySelector('input').focus()} style={{
+                        height:78,borderRadius:12,boxSizing:'border-box',
+                        background:has?'var(--ok-soft)':'#fff',
+                        border:'1.5px solid '+(has?'var(--ok)':'var(--line)'),
+                        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+                        padding:'4px 6px',cursor:'text'
                       }}>
+                        <div style={{fontSize:15,lineHeight:1,marginBottom:1}}>{z.icon}</div>
                         <input type="number" inputMode="numeric" min="0"
                           value={cnt===0?'':cnt} placeholder="0"
                           onChange={e=>upd(i,z.k,Math.max(0,parseInt(e.target.value||'0',10)||0))}
                           onFocus={e=>e.target.select()} onKeyDown={noNeg}
-                          style={{width:'100%',textAlign:'center',fontSize:20,fontWeight:800,
-                            border:0,background:'transparent',color:has?'var(--ok)':'var(--line-2)',
-                            lineHeight:1,padding:0,outline:'none'}}/>
-                        <div style={{fontSize:10,fontWeight:700,marginTop:4,textTransform:'uppercase',letterSpacing:.5,color:has?'var(--ok)':'var(--muted)'}}>{z.label}</div>
+                          style={{width:'100%',textAlign:'center',fontSize:18,fontWeight:800,
+                            border:0,background:'transparent',color:has?'var(--ok)':'var(--ink)',
+                            lineHeight:1,padding:0,outline:'none',cursor:'text'}}/>
+                        <div style={{fontSize:9,fontWeight:700,marginTop:2,textTransform:'uppercase',letterSpacing:.5,color:has?'var(--ok)':'var(--muted)'}}>{z.label}</div>
                       </div>
                     );
                   })}
@@ -314,19 +315,12 @@ function TrongCa({data, setData, onBack, onDone}) {
         <div style={{display:'flex',alignItems:'center',gap:12}}>
           <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'rgba(255,255,255,.12)',color:'#fff',fontSize:22}}>‹</button>
           <div style={{flex:1}}>
-            <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>Bước 3 · Đang trong ca</div>
+            <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>Trong ca</div>
             <h1 style={{color:'#fff',fontSize:18,marginTop:2}}>Theo dõi xuất / nhập / hư / KM</h1>
           </div>
-        </div>
-        <div style={{marginTop:12,padding:'12px 14px',background:'rgba(255,255,255,.08)',borderRadius:'var(--r)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div>
-            <div style={{fontSize:11,opacity:.6,letterSpacing:1,textTransform:'uppercase',fontWeight:600}}>Tồn dự kiến</div>
-            <div className="t-num" style={{fontSize:22,fontWeight:800,marginTop:2,color:'#fff'}}>{totalTon} cái</div>
-          </div>
           {outOfStockN>0&&(
-            <div style={{background:'var(--err)',color:'#fff',borderRadius:10,padding:'6px 12px',fontSize:13,fontWeight:700,textAlign:'center',lineHeight:1.3}}>
-              <div style={{fontSize:18}}>⚠️</div>
-              <div>{outOfStockN} hết hàng</div>
+            <div style={{background:'var(--err)',color:'#fff',borderRadius:10,padding:'5px 10px',fontSize:12,fontWeight:700,flexShrink:0,lineHeight:1.3,textAlign:'center'}}>
+              ⚠ {outOfStockN} hết hàng
             </div>
           )}
         </div>
@@ -432,14 +426,14 @@ function CuoiCa({data, setData, onBack, onDone}) {
   const totalRev  = data.products.reduce((s,v,i)=>s+productRev(v,i),0);
   return (
     <div className="screen">
-      <div className="app-bar">
+      <div className="app-bar" style={{background:'#1565c0',borderBottom:0}}>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
-          <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'var(--paper-2)',fontSize:22}}>‹</button>
+          <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'rgba(255,255,255,.15)',color:'#fff',fontSize:22}}>‹</button>
           <div style={{flex:1}}>
-            <div className="h-section">Bước 4 · Cuối ca</div>
-            <h1 style={{fontSize:18,marginTop:2}}>Đếm tồn cuối ca</h1>
+            <div style={{fontSize:11,opacity:.7,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600,color:'#fff'}}>Cuối ca</div>
+            <h1 style={{fontSize:18,marginTop:2,color:'#fff'}}>Đếm tồn cuối ca</h1>
           </div>
-          <div className="chip chip-accent">{doneCount}/{rows.length}</div>
+          <div style={{background:'rgba(255,255,255,.2)',color:'#fff',padding:'4px 10px',borderRadius:999,fontSize:12,fontWeight:700}}>{doneCount}/{rows.length}</div>
         </div>
       </div>
       <div className="scroll-area" style={{padding:'12px 14px 24px'}}>
@@ -454,21 +448,26 @@ function CuoiCa({data, setData, onBack, onDone}) {
                 <span style={{fontSize:22}}>{r.p.emoji}</span>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:700,lineHeight:1.2}}>{r.p.short}</div>
-                  {r.tieuThu!==null&&(
-                    <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>
-                      Đã bán: <span className="t-num" style={{fontWeight:700,color:'var(--ink-2)'}}>{r.tieuThu}</span> cái · <span className="t-money">{fmt(r.tieuThu*r.p.gia)}</span>
-                    </div>
-                  )}
+                  <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{fmt(r.p.gia)}</div>
                 </div>
                 {r.checked&&<span className="chip chip-ok">✓</span>}
               </div>
-              <div>
-                <div style={{fontSize:10,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700,marginBottom:4}}>Tồn cuối thực tế</div>
-                <input className="field-input" type="number" inputMode="numeric" min="0"
-                  value={r.v.cuoi_thuc===undefined?'':r.v.cuoi_thuc} placeholder="—"
-                  onChange={e=>upd(r.i,e.target.value===''?undefined:Math.max(0,parseInt(e.target.value)||0))}
-                  onFocus={e=>e.target.select()} onKeyDown={noNeg}
-                  style={{height:48,fontSize:18,fontWeight:700,textAlign:'center'}}/>
+              <div style={{display:'flex',gap:10,alignItems:'flex-end'}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:10,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1,fontWeight:700,marginBottom:4}}>Tồn cuối thực tế</div>
+                  <input className="field-input" type="number" inputMode="numeric" min="0"
+                    value={r.v.cuoi_thuc===undefined?'':r.v.cuoi_thuc} placeholder="Nhập số…"
+                    onChange={e=>upd(r.i,e.target.value===''?undefined:Math.max(0,parseInt(e.target.value)||0))}
+                    onFocus={e=>e.target.select()} onKeyDown={noNeg}
+                    style={{height:52,fontSize:20,fontWeight:700,textAlign:'center'}}/>
+                </div>
+                {r.checked&&r.tieuThu!==null&&(
+                  <div style={{flexShrink:0,textAlign:'right',paddingBottom:2}}>
+                    <div style={{fontSize:10,color:'var(--muted)',fontWeight:600,marginBottom:2}}>Đã bán</div>
+                    <div className="t-num" style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>{r.tieuThu} cái</div>
+                    <div className="t-money" style={{fontSize:15,fontWeight:800,color:'var(--ok)'}}>{fmt(r.tieuThu*r.p.gia)}</div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -505,12 +504,12 @@ function Tien({mode, data, setData, onBack, onDone}) {
   const isCuoi   = mode==='cuoi';
   return (
     <div className="screen">
-      <div className="app-bar">
+      <div className="app-bar" style={{background:isCuoi?'#00695c':'var(--accent)',borderBottom:0}}>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
-          <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'var(--paper-2)',fontSize:22}}>‹</button>
+          <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'rgba(255,255,255,.15)',color:'#fff',fontSize:22}}>‹</button>
           <div style={{flex:1}}>
-            <div className="h-section">{isCuoi?'Bước cuối · Tiền cuối ca':'Bước 2 · Đầu ca — Tiền mặt'}</div>
-            <h1 style={{fontSize:18,marginTop:2}}>{isCuoi?'Đếm tiền cuối ca':'Đếm tiền đầu ca'}</h1>
+            <div style={{fontSize:11,opacity:.7,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600,color:'#fff'}}>{isCuoi?'Cuối ca':'Đầu ca'}</div>
+            <h1 style={{fontSize:18,marginTop:2,color:'#fff'}}>{isCuoi?'Đếm tiền cuối ca':'Đếm tiền đầu ca'}</h1>
           </div>
         </div>
       </div>
@@ -552,33 +551,28 @@ function Tien({mode, data, setData, onBack, onDone}) {
           </div>
         )}
         <div className="m-card" style={{marginTop:12,padding:14,
-          background:isCuoi?(diff===0?'var(--ok-soft)':'var(--err-soft)'):'var(--accent-soft)',
-          borderColor:isCuoi?(diff===0?'var(--ok)':'var(--err)'):'var(--accent)',borderWidth:1.5}}>
+          background:isCuoi?'var(--paper-2)':'var(--accent-soft)',
+          borderColor:isCuoi?'var(--line)':'var(--accent)',borderWidth:1.5}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:isCuoi?8:0}}>
             <span style={{fontSize:13,fontWeight:700,color:'var(--ink-2)'}}>∑ Tổng tiền đếm được</span>
             <span className="t-money" style={{fontSize:22,fontWeight:800,color:'var(--ink)'}}>{fmt(total)}</span>
           </div>
           {isCuoi&&(
             <div style={{paddingTop:8,borderTop:'1px dashed rgba(0,0,0,.1)',fontSize:12,lineHeight:1.6}}>
-              <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--muted)'}}>Đầu ca</span><span className="t-money">{fmt(dauTotal)}</span></div>
+              <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--muted)'}}>Tiền đầu ca</span><span className="t-money">{fmt(dauTotal)}</span></div>
               <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--muted)'}}>+ Doanh thu hàng</span><span className="t-money">{fmt(totalRev)}</span></div>
               {dtNH>0&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--muted)'}}>− Chuyển khoản / NH</span><span className="t-money">−{fmt(dtNH)}</span></div>}
               {chiPhi>0&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--muted)'}}>− Chi phí</span><span className="t-money">−{fmt(chiPhi)}</span></div>}
               <div style={{display:'flex',justifyContent:'space-between',marginTop:6,paddingTop:6,borderTop:'1px solid rgba(0,0,0,.08)',fontWeight:700}}>
-                <span>= Dự kiến</span><span className="t-money">{fmt(expected)}</span>
-              </div>
-              <div style={{display:'flex',justifyContent:'space-between',marginTop:8,padding:'8px 10px',borderRadius:8,fontWeight:700,fontSize:14,
-                background:diff===0?'rgba(35,134,54,.12)':'rgba(206,55,44,.12)'}}>
-                <span style={{color:diff===0?'var(--ok)':'var(--err)'}}>{diff===0?'✓ Khớp với dự kiến':diff>0?'⚠ Thừa':'⚠ Thiếu'}</span>
-                <span className="t-money" style={{color:diff===0?'var(--ok)':'var(--err)'}}>{diff===0?'0 ₫':(diff>0?'+':'')+fmt(diff)}</span>
+                <span>= Dự kiến trong két</span><span className="t-money">{fmt(expected)}</span>
               </div>
             </div>
           )}
         </div>
       </div>
       <div className="bottom-bar">
-        <button className={`btn-primary ${isCuoi&&diff===0?'is-ok':''}`} onClick={onDone} disabled={total===0}>
-          {!isCuoi?'✓ Tiền đầu ca xong':diff===0?'✓ Khớp — sang bàn giao':'⚠ Lệch — vẫn bàn giao'}
+        <button className={`btn-primary ${isCuoi?'is-ok':''}`} onClick={onDone} disabled={total===0}>
+          {!isCuoi?'✓ Tiền đầu ca xong':'✓ Xong — sang bàn giao'}
         </button>
       </div>
     </div>
@@ -600,7 +594,7 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting}) {
         <div style={{display:'flex',alignItems:'center',gap:12}}>
           <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'var(--paper-2)',fontSize:22}}>‹</button>
           <div style={{flex:1}}>
-            <div className="h-section">Bước cuối · Bàn giao</div>
+            <div className="h-section">Cuối ca</div>
             <h1 style={{fontSize:18,marginTop:2}}>Bàn giao ca</h1>
           </div>
         </div>
