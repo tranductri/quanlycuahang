@@ -151,25 +151,9 @@ function fetchAllProducts() {
     });
 }
 
-// Đọc ca trước từ sheet theo địa điểm qua gviz — nProducts = số sản phẩm của địa điểm đó
-function fetchLastShift(vi_tri, nProducts) {
-  var sheetName = vi_tri === 'Bình Tân' ? 'binh_tan' : 'quan_6';
-  var url = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID
-          + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheetName);
-  return fetch(url)
-    .then(function(r) { return r.text(); })
-    .then(function(text) {
-      var m = text.match(/setResponse\(([\s\S]*)\)/);
-      if (!m) return {success:false};
-      var resp = JSON.parse(m[1]);
-      if (resp.status !== 'ok' || !resp.table || !resp.table.rows.length) return {success:false};
-      var row = resp.table.rows[resp.table.rows.length - 1].c;
-      var products = Array.from({length: nProducts}, function(_, p) {
-        var cell = row[4 + p * 13 + 8];
-        return {cuoi_thuc: (cell && cell.v !== null && cell.v !== undefined) ? Number(cell.v) : undefined};
-      });
-      return {success:true, products:products};
-    });
+function fetchLastShift(vi_tri) {
+  return fetch(GAS_URL + '?action=lastShift&vi_tri=' + encodeURIComponent(vi_tri))
+    .then(function(r){ return r.json(); });
 }
 
 const saveUser = (ten, vi_tri) => {
@@ -963,17 +947,13 @@ function App() {
       .catch(()=>{});
   }, []);
 
-  // Fetch previous shift when location + allProducts are ready
+  // Fetch previous shift when location is ready
   useEffect(()=>{
-    if (!data.vi_tri || !allProducts) return;
-    const nProducts = allProducts.filter(p=>
-      data.vi_tri==='Bình Tân' ? p.binh_tan : data.vi_tri==='Quận 6' ? p.quan_6 : false
-    ).length;
-    if (!nProducts) return;
-    fetchLastShift(data.vi_tri, nProducts)
+    if (!data.vi_tri) return;
+    fetchLastShift(data.vi_tri)
       .then(res=>{ if (res.success && res.products) setPrevData(res.products); })
       .catch(()=>{});
-  }, [data.vi_tri, allProducts]);
+  }, [data.vi_tri]);
 
   // Products visible at current location — idx = allProducts position, locIdx = position in filtered list
   const locationProducts = allProducts
