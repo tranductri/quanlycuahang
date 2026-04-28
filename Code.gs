@@ -17,18 +17,63 @@ var PRODUCTS = [
 
 var DENOMS = [500000,200000,100000,50000,20000,10000,5000,2000,1000];
 
-// ── doGet: health check / product list ──────────────────────
+// ── doGet ────────────────────────────────────────────────────
 function doGet(e) {
+  var params = (e && e.parameter) ? e.parameter : {};
+  var result;
+  if (params.action === 'lastShift' && params.vi_tri) {
+    result = getLastShift(params.vi_tri);
+  } else {
+    result = {success:true, products:PRODUCTS};
+  }
+  var json = JSON.stringify(result);
+  if (params.callback) {
+    return ContentService
+      .createTextOutput(params.callback + '(' + json + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
   return ContentService
-    .createTextOutput(JSON.stringify({success:true, products:PRODUCTS}))
+    .createTextOutput(json)
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ── doPost: receive shift report, append row ─────────────────
+// ── Get last submitted shift for a location ──────────────────
+function getLastShift(vi_tri) {
+  try {
+    var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(SHEET_CA);
+    if (!sheet || sheet.getLastRow() < 2) return {success:false};
+    var rows = sheet.getDataRange().getValues();
+    // Columns: 0=Timestamp, 1=Ngày, 2=Vị trí, 3=Tên, then 13 cols × 11 products
+    // Cuối TT = base + 8 where base = 4 + p*13
+    for (var i = rows.length - 1; i >= 1; i--) {
+      if (rows[i][2] === vi_tri) {
+        var products = [];
+        for (var p = 0; p < PRODUCTS.length; p++) {
+          var cuoi = rows[i][4 + p * 13 + 8];
+          products.push({cuoi_thuc: cuoi === '' ? undefined : Number(cuoi)});
+        }
+        return {success:true, ngay:rows[i][1], ten:rows[i][3], products:products};
+      }
+    }
+    return {success:false};
+  } catch(err) {
+    return {success:false, error:err.toString()};
+  }
+}
+
+// ── doPost: receive shift report OR query ────────────────────
 function doPost(e) {
   try {
     var raw = (e && e.postData) ? e.postData.contents : '{}';
     var data = JSON.parse(raw);
+
+    if (data.action === 'lastShift') {
+      return ContentService
+        .createTextOutput(JSON.stringify(getLastShift(data.vi_tri||'')))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
 
     var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName(SHEET_CA);
@@ -68,10 +113,10 @@ function doPost(e) {
 function buildHeaders() {
   var h = ['Timestamp','Ngày','Vị trí','Tên'];
 
-  // Per-product columns (11 cols each)
+  // Per-product columns (13 cols each)
   PRODUCTS.forEach(function(p) {
     var n = '['+p.ten+'] ';
-    h.push(n+'Đầu H1', n+'Đầu H2', n+'Đầu Kho',
+    h.push(n+'Đầu H1', n+'Đầu H2', n+'Đầu Kho', n+'Bánh cũ',
            n+'Xuất', n+'Nhập', n+'Hư', n+'KM',
            n+'Cuối TT', n+'Dự kiến', n+'Lệch',
            n+'Tiêu thụ (cái)', n+'Doanh thu');
@@ -103,19 +148,19 @@ function buildRow(data) {
     var dau_h1    = Number(v.dau_h1)  || 0;
     var dau_h2    = Number(v.dau_h2)  || 0;
     var dau_kho   = Number(v.dau_kho) || 0;
+    var dau_cu    = Number(v.dau_cu)  || 0;
     var xuat      = Number(v.xuat)    || 0;
     var nhap      = Number(v.nhap)    || 0;
     var hu        = Number(v.hu)      || 0;
     var km        = Number(v.km)      || 0;
     var cuoi_thuc = v.cuoi_thuc !== undefined && v.cuoi_thuc !== '' ? Number(v.cuoi_thuc) : '';
-    var predicted = dau_h1 + dau_h2 + dau_kho + nhap - xuat - hu - km;
+    var predicted = dau_h1 + dau_h2 + dau_kho + dau_cu + nhap - xuat - hu - km;
     var lech      = cuoi_thuc !== '' ? cuoi_thuc - predicted : '';
-    // Tiêu thụ thực = Đầu + Nhập − Hư − KM − Tồn cuối (tính từ kiểm kho)
-    var tieu_thu  = cuoi_thuc !== '' ? Math.max(0, dau_h1 + dau_h2 + dau_kho + nhap - hu - km - cuoi_thuc) : xuat;
+    var tieu_thu  = cuoi_thuc !== '' ? Math.max(0, dau_h1 + dau_h2 + dau_kho + dau_cu + nhap - hu - km - cuoi_thuc) : xuat;
     var dt        = tieu_thu * p.gia;
     totalRev += dt;
 
-    row.push(dau_h1, dau_h2, dau_kho, xuat, nhap, hu, km, cuoi_thuc, predicted, lech, tieu_thu, dt);
+    row.push(dau_h1, dau_h2, dau_kho, dau_cu, xuat, nhap, hu, km, cuoi_thuc, predicted, lech, tieu_thu, dt);
   });
 
   var tienDau  = data.tien_dau  || {};
