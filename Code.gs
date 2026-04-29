@@ -321,8 +321,14 @@ function setupHeaders(sheet, locationProds) {
     sheet.getRange(1, mc, 1, 14).setBackground('#162545').setFontColor('#ffffff'); // sản phẩm – navy
     mc += 14;
   });
+  var denomColors = ['#0a2e1a', '#0a1a2e', '#2e1a0a']; // đầu ca – xanh, cuối ca – xanh navy, cất – nâu cam
   for (i = 0; i < 3; i++) {
-    sheet.getRange(1, denomC+1 + i*DENOMS.length, 1, DENOMS.length).setBackground('#0e2a1a').setFontColor('#ffffff'); // tiền – forest
+    var dColStart = denomC+1 + i*DENOMS.length;
+    sheet.getRange(1, dColStart, 1, DENOMS.length).setBackground(denomColors[i]).setFontColor('#ffffff');
+    // Border giữa các mệnh giá và viền ngoài nhóm
+    var dRange = sheet.getRange(1, dColStart, 3, DENOMS.length);
+    dRange.setBorder(null, null, null, null, true, null, '#888888', SpreadsheetApp.BorderStyle.SOLID);
+    dRange.setBorder(true, true, true, true, null, null, '#ffffff', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   }
   sheet.getRange(1, sumC+1, 1, 8).setBackground('#2a1230').setFontColor('#ffffff'); // tổng kết – plum
   sheet.getRange(1, sumC+9, 1, 1).setBackground('#2a1230').setFontColor('#ffffff');
