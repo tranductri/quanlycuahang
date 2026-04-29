@@ -75,6 +75,7 @@
 const { useState, useEffect } = React;
 
 const GAS_URL = 'https://quanlycuahang.tdtri281090.workers.dev';
+const APP_VERSION = 'v47';
 
 function productEmoji(ten) {
   if (ten.startsWith('Bánh bao')) return '🥟';
@@ -847,6 +848,7 @@ function Hub({data, setData, setScreen, prevData, products, authUser, onLogout})
               {!editing&&(
                 <button onClick={()=>setEditing(true)} style={{padding:'1px 7px',borderRadius:6,background:'rgba(255,255,255,.15)',color:'rgba(255,255,255,.7)',fontSize:11,fontWeight:700,border:0,cursor:'pointer',letterSpacing:.5}}>✎ đổi</button>
               )}
+              <span style={{fontSize:10,opacity:.45,letterSpacing:.5,fontWeight:500}}>{APP_VERSION}</span>
             </div>
             <h1 style={{color:'#fff',fontSize:19,marginTop:2}}>{authUser?.name?`Ca của ${authUser.name}`:'Kiểm kê ca'}</h1>
           </div>
