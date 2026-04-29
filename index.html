@@ -91,11 +91,11 @@ function productShort(ten) {
 const DENOMS = [500000,200000,100000,50000,20000,10000,5000,2000,1000];
 
 const computePredicted = v =>
-  (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)+(v.nhap||0)-(v.xuat||0)-(v.hu||0)-(v.km||0);
+  (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)+(v.nhap||0)-(v.xuat||0)-(v.hu||0)-(v.km||0)-(v.chuyen||0);
 
 const computeTieuThu = v => {
   if (v.cuoi_thuc === undefined || v.cuoi_thuc === '') return null;
-  return Math.max(0, (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)+(v.nhap||0)-(v.hu||0)-(v.km||0)-Number(v.cuoi_thuc));
+  return Math.max(0, (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)+(v.nhap||0)-(v.hu||0)-(v.km||0)-(v.chuyen||0)-Number(v.cuoi_thuc));
 };
 
 const productRev = (v, gia) => {
@@ -301,10 +301,11 @@ function DauCa({data, setData, onBack, onDone, prevData, prevLoading, products})
 
 /* ─── TRONG CA ─── */
 const ACTS = [
-  {k:'xuat',label:'Xuất',color:'var(--accent)',bg:'var(--accent-soft)',ink:'var(--accent-ink)'},
-  {k:'nhap',label:'Nhập',color:'var(--ok)',    bg:'var(--ok-soft)',    ink:'var(--ok)'},
-  {k:'hu',  label:'Hư',  color:'var(--err)',   bg:'var(--err-soft)',   ink:'var(--err)'},
-  {k:'km',  label:'KM',  color:'#a06b3a',      bg:'#fbf0e2',           ink:'#7a4f25'},
+  {k:'xuat',  label:'Xuất',   color:'var(--accent)',bg:'var(--accent-soft)',ink:'var(--accent-ink)'},
+  {k:'nhap',  label:'Nhập',   color:'var(--ok)',    bg:'var(--ok-soft)',    ink:'var(--ok)'},
+  {k:'hu',    label:'Hư',     color:'var(--err)',   bg:'var(--err-soft)',   ink:'var(--err)'},
+  {k:'km',    label:'KM',     color:'#a06b3a',      bg:'#fbf0e2',           ink:'#7a4f25'},
+  {k:'chuyen',label:'Chuyển', color:'#2e6b95',      bg:'#ddeef8',           ink:'#1a4a6e'},
 ];
 
 function TrongCa({data, setData, onBack, onDone, products}) {
@@ -322,7 +323,7 @@ function TrongCa({data, setData, onBack, onDone, products}) {
           <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'rgba(255,255,255,.12)',color:'#fff',fontSize:22}}>‹</button>
           <div style={{flex:1}}>
             <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>Trong ca</div>
-            <h1 style={{color:'#fff',fontSize:18,marginTop:2}}>Theo dõi xuất / nhập / hư / KM</h1>
+            <h1 style={{color:'#fff',fontSize:18,marginTop:2}}>Xuất · Nhập · Hư · KM · Chuyển</h1>
           </div>
           {outOfStockN>0&&(
             <div style={{background:'var(--err)',color:'#fff',borderRadius:10,padding:'5px 10px',fontSize:12,fontWeight:700,flexShrink:0,lineHeight:1.3,textAlign:'center'}}>
@@ -361,7 +362,7 @@ function TrongCa({data, setData, onBack, onDone, products}) {
                 {oos&&<div style={{marginBottom:8,padding:'6px 10px',background:'var(--err-soft)',borderRadius:8,fontSize:12,color:'var(--err)',fontWeight:600}}>
                   ⚠ Cần nhập hàng trước khi ghi xuất
                 </div>}
-                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:4}}>
                   {ACTS.map(a=>{
                     const cnt=v[a.k]||0; const has=cnt>0;
                     const blocked=oos&&a.k==='xuat';
@@ -780,7 +781,7 @@ function Hub({data, setData, setScreen, prevData, products, authUser, onLogout})
     : 0;
   const tienDauDone = tienDauTotal>0;
   const tienCuoiDone= tienCuoiTotal>0;
-  const trongActive = products.some(p=>{ const v=data.products[p.idx]||{}; return (v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)>0; });
+  const trongActive = products.some(p=>{ const v=data.products[p.idx]||{}; return (v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)+(v.chuyen||0)>0; });
   const cuoiDone    = products.length>0 && products.every(p=>{ const v=data.products[p.idx]||{}; return v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''; });
   const totalRev    = products.reduce((s,p)=>s+productRev(data.products[p.idx]||{},p.gia),0);
   const filledCount = products.filter(p=>{ const v=data.products[p.idx]||{}; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0; }).length;
@@ -795,7 +796,7 @@ function Hub({data, setData, setScreen, prevData, products, authUser, onLogout})
     } else if (key === 'tien-dau') {
       next = {...data, tien_dau:{}};
     } else if (key === 'trong') {
-      const ps = data.products.map(v=>{ const {xuat,nhap,hu,km,...r}=v; return r; });
+      const ps = data.products.map(v=>{ const {xuat,nhap,hu,km,chuyen,...r}=v; return r; });
       next = {...data, products:ps};
     } else if (key === 'cuoi-hang') {
       const ps = data.products.map(v=>{ const {cuoi_kho,cuoi_hop,cuoi_thuc,...r}=v; return r; });
@@ -820,7 +821,7 @@ function Hub({data, setData, setScreen, prevData, products, authUser, onLogout})
     ]},
     { label:'Trong ca', tiles:[
       {key:'trong',    resetKey:'trong',     hasData:trongActive,
-       title:'Xuất / Nhập / Hư / KM', icon:'🛒', active:trongActive,
+       title:'Xuất / Nhập / Hư / KM / Chuyển', icon:'🛒', active:trongActive,
        sub:trongActive?`Đang theo dõi · ${fmt(totalRev)}`:'Bấm + mỗi lần có thay đổi'},
     ]},
     { label:'Cuối ca', tiles:[

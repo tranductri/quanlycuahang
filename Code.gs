@@ -177,7 +177,7 @@ function getLastShift(ss, vi_tri) {
     var rows  = sheet.getDataRange().getValues();
     var last  = rows[rows.length - 1];
     var products = locationProds.map(function(prod, i) {
-      var cuoi = last[4 + i * 13 + 8];
+      var cuoi = last[4 + i * 14 + 9];
       return {cuoi_thuc: (cuoi === '' || cuoi === null || cuoi === undefined) ? undefined : Number(cuoi)};
     });
     return {success:true, ngay:last[1], ten:last[3], products:products};
@@ -222,7 +222,7 @@ function doPost(e) {
     var chiPhiV  = Number(data.chi_phi) || 0;
     var dtNHV    = Number(data.dt_nh)   || 0;
     var totalRev = 0;
-    locationProds.forEach(function(p, i){ totalRev += Number(row[4 + i * 13 + 12]) || 0; });
+    locationProds.forEach(function(p, i){ totalRev += Number(row[4 + i * 14 + 13]) || 0; });
     var tongDau = 0, tongCuoi = 0;
     DENOMS.forEach(function(d){ tongDau  += (Number((data.tien_dau  ||{})[d])||0)*d; });
     DENOMS.forEach(function(d){ tongCuoi += (Number((data.tien_cuoi ||{})[d])||0)*d; });
@@ -252,7 +252,7 @@ function buildHeaders(locationProds) {
   locationProds.forEach(function(p) {
     var n = '['+p.ten+'] ';
     h.push(n+'Đầu H1', n+'Đầu H2', n+'Đầu Kho', n+'Hộp',
-           n+'Xuất', n+'Nhập', n+'Hư', n+'KM',
+           n+'Xuất', n+'Nhập', n+'Hư', n+'KM', n+'Chuyển',
            n+'Cuối TT', n+'Dự kiến', n+'Lệch',
            n+'Tiêu thụ (cái)', n+'Doanh thu');
   });
@@ -288,13 +288,14 @@ function buildRow(data, locationProds) {
     var nhap      = Number(v.nhap)    || 0;
     var hu        = Number(v.hu)      || 0;
     var km        = Number(v.km)      || 0;
+    var chuyen    = Number(v.chuyen)  || 0;
     var cuoi_thuc = (v.cuoi_thuc !== undefined && v.cuoi_thuc !== '') ? Number(v.cuoi_thuc) : '';
-    var predicted = dau_h1 + dau_h2 + dau_kho + dau_cu + nhap - xuat - hu - km;
+    var predicted = dau_h1 + dau_h2 + dau_kho + dau_cu + nhap - xuat - hu - km - chuyen;
     var lech      = cuoi_thuc !== '' ? cuoi_thuc - predicted : '';
-    var tieu_thu  = cuoi_thuc !== '' ? Math.max(0, dau_h1 + dau_h2 + dau_kho + dau_cu + nhap - hu - km - cuoi_thuc) : xuat;
+    var tieu_thu  = cuoi_thuc !== '' ? Math.max(0, dau_h1 + dau_h2 + dau_kho + dau_cu + nhap - hu - km - chuyen - cuoi_thuc) : xuat;
     var dt        = tieu_thu * p.gia;
     totalRev += dt;
-    row.push(dau_h1, dau_h2, dau_kho, dau_cu, xuat, nhap, hu, km, cuoi_thuc, predicted, lech, tieu_thu, dt);
+    row.push(dau_h1, dau_h2, dau_kho, dau_cu, xuat, nhap, hu, km, chuyen, cuoi_thuc, predicted, lech, tieu_thu, dt);
   });
 
   var tienDau  = data.tien_dau  || {};
