@@ -75,7 +75,7 @@
 const { useState, useEffect } = React;
 
 const GAS_URL = 'https://quanlycuahang.tdtri281090.workers.dev';
-const APP_VERSION = 'v47';
+const APP_VERSION = 'v48';
 
 function productEmoji(ten) {
   if (ten.startsWith('Bánh bao')) return '🥟';
@@ -123,7 +123,7 @@ const INIT = () => {
     products: Array(20).fill(null).map(()=>({})),
     tien_dau:{}, tien_cuoi:{}, cat_dt:{},
     chi_phi:0, dt_nh:0,
-    nguoi_giao:'', nguoi_nhan:'', ghi_chu:''
+    ghi_chu:''
   };
 };
 

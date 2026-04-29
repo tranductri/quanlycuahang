@@ -242,7 +242,7 @@ function doPost(e) {
 
 // ── Column count (for schema check) ──────────────────────────
 function getColumnCount(locationProds) {
-  return 4 + locationProds.length * 14 + DENOMS.length * 3 + 11;
+  return 4 + locationProds.length * 14 + DENOMS.length * 3 + 9;
 }
 
 // ── Multi-row header setup ────────────────────────────────────
@@ -276,12 +276,12 @@ function setupHeaders(sheet, locationProds) {
     c += DENOMS.length;
   });
 
-  // ── Summary cols (11) ──
+  // ── Summary cols (9) ──
   var sumC = c;
-  r1[c] = 'Tổng kết';  r1[c+8] = 'Bàn giao';
-  r3[c]  ='Tổng ĐC';   r3[c+1]='Tổng CC';   r3[c+2]='Chi phí';    r3[c+3]='DT NH';
-  r3[c+4]='Tổng DT';   r3[c+5]='Lệch tiền'; r3[c+6]='Tổng cất';   r3[c+7]='Còn lại';
-  r3[c+8]='Người giao';r3[c+9]='Người nhận';r3[c+10]='Ghi chú';
+  r1[c] = 'Tổng kết';
+  r3[c]  ='Tổng ĐC'; r3[c+1]='Tổng CC'; r3[c+2]='Chi phí'; r3[c+3]='DT NH';
+  r3[c+4]='Tổng DT'; r3[c+5]='Lệch tiền'; r3[c+6]='Tổng cất'; r3[c+7]='Còn lại';
+  r1[c+8]='Ghi chú';
 
   // ── Write values ──
   sheet.getRange(1, 1, 3, totalCols).setValues([r1, r2, r3]);
@@ -305,16 +305,27 @@ function setupHeaders(sheet, locationProds) {
     sheet.getRange(1, denomC+1 + i*DENOMS.length, 2, DENOMS.length).merge();
   }
 
-  // Summary groups: rows 1–2 merged
-  sheet.getRange(1, sumC+1,   2, 8).merge();
-  sheet.getRange(1, sumC+1+8, 2, 3).merge();
+  // Summary: Tổng kết rows 1–2 (8 cols), Ghi chú all 3 rows (1 col)
+  sheet.getRange(1, sumC+1, 2, 8).merge();
+  sheet.getRange(1, sumC+9, 3, 1).merge();
 
   // ── Formatting ──
   var full = sheet.getRange(1, 1, 3, totalCols);
   full.setFontWeight('bold').setFontSize(10).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true);
 
-  // Row 1: dark
+  // Row 1 base: dark
   sheet.getRange(1, 1, 1, totalCols).setBackground('#1c1614').setFontColor('#ffffff');
+  // Row 1 per section: different shades for visual separation
+  mc = 5;
+  locationProds.forEach(function() {
+    sheet.getRange(1, mc, 1, 14).setBackground('#162545').setFontColor('#ffffff'); // sản phẩm – navy
+    mc += 14;
+  });
+  for (i = 0; i < 3; i++) {
+    sheet.getRange(1, denomC+1 + i*DENOMS.length, 1, DENOMS.length).setBackground('#0e2a1a').setFontColor('#ffffff'); // tiền – forest
+  }
+  sheet.getRange(1, sumC+1, 1, 8).setBackground('#2a1230').setFontColor('#ffffff'); // tổng kết – plum
+  sheet.getRange(1, sumC+9, 1, 1).setBackground('#2a1230').setFontColor('#ffffff');
 
   // Row 2: info cells dark, product groups colored, rest dark
   sheet.getRange(2, 1, 1, totalCols).setBackground('#1c1614').setFontColor('#ffffff');
@@ -382,7 +393,7 @@ function buildRow(data, locationProds) {
     chiPhi, dtNH,
     totalRev, lechTien,
     tongCat, conLai,
-    data.nguoi_giao||'', data.nguoi_nhan||'', data.ghi_chu||''
+    data.ghi_chu||''
   );
   return row;
 }
