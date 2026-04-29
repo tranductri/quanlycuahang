@@ -1,4 +1,4 @@
-const CACHE = 'kiem-ke-ca-v50';
+const CACHE = 'kiem-ke-ca-v51';
 
 const PRECACHE = [
   '/quanlycuahang/',
@@ -7,6 +7,7 @@ const PRECACHE = [
   '/quanlycuahang/icon-192.png',
   '/quanlycuahang/icon-512.png',
   '/quanlycuahang/banh_bao.png',
+  '/quanlycuahang/chita-logo.jpg',
   'https://unpkg.com/react@18/umd/react.production.min.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
   'https://unpkg.com/@babel/standalone/babel.min.js',
