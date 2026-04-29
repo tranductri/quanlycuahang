@@ -75,15 +75,20 @@
 const { useState, useEffect } = React;
 
 const GAS_URL = 'https://quanlycuahang.tdtri281090.workers.dev';
-const APP_VERSION = 'v49';
+const APP_VERSION = 'v50';
 
+const BANH_BAO_IMG = '/quanlycuahang/banh_bao.png';
 function productEmoji(ten) {
-  if (ten.startsWith('Bánh bao')) return '🥟';
+  if (ten.startsWith('Bánh bao')) return BANH_BAO_IMG;
   if (ten.startsWith('Bánh mì'))  return '🥖';
   if (ten.startsWith('Mì ý'))     return '🍝';
   if (ten.startsWith('Cơm nắm')) return '🍙';
   if (ten === 'Yaourt')            return '🥛';
   return '🍱';
+}
+function renderIcon(icon, size) {
+  if (icon.startsWith('/')) return <img src={icon} style={{width:size,height:size,objectFit:'contain',display:'block'}}/>;
+  return <span style={{fontSize:size,lineHeight:1}}>{icon}</span>;
 }
 function productShort(ten) {
   return ten.replace('Bánh bao ','BB ').replace('Cơm nắm xúc xích ','Cơm nắm ');
@@ -240,7 +245,7 @@ function DauCa({data, setData, onBack, onDone, prevData, prevLoading, products})
                 background:isLech?'#fffbeb':'var(--card)',
                 border:isLech?'2px solid var(--warn)':total>0?'2px solid var(--ok)':'1px solid var(--line)'}}>
                 <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
-                  <span style={{fontSize:22,lineHeight:1}}>{p.emoji}</span>
+                  {renderIcon(p.emoji,22)}
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:14,fontWeight:700,lineHeight:1.15}}>{p.short}</div>
                     <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{fmt(p.gia)}</div>
@@ -345,7 +350,7 @@ function TrongCa({data, setData, onBack, onDone, products}) {
                 border:oos?'2px solid var(--err)':'2px solid transparent',
                 background:oos?'#fff5f5':'var(--paper)'}}>
                 <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
-                  <span style={{fontSize:22,lineHeight:1}}>{p.emoji}</span>
+                  {renderIcon(p.emoji,22)}
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:14,fontWeight:700,lineHeight:1.15}}>{p.short}</div>
                     <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{fmt(p.gia)}</div>
@@ -464,7 +469,7 @@ function CuoiCa({data, setData, onBack, onDone, products}) {
             <div key={r.p.idx} className="m-card" style={{padding:'10px 10px 8px',
               borderColor:r.checked?'var(--ok)':'var(--line)',borderWidth:r.checked?1.5:1}}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
-                <span style={{fontSize:22}}>{r.p.emoji}</span>
+                {renderIcon(r.p.emoji,22)}
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:700,lineHeight:1.2}}>{r.p.short}</div>
                   <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{fmt(r.p.gia)}</div>
