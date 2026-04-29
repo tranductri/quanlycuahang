@@ -173,7 +173,7 @@ function getLastShift(ss, vi_tri) {
     var locationProds = getProductsForLocation(ss, vi_tri);
     var sheet         = ss.getSheetByName(sheetName);
     if (!sheet)                  return {success:false, error:'Sheet "' + sheetName + '" chưa tồn tại'};
-    if (sheet.getLastRow() < 2)  return {success:false, error:'Sheet "' + sheetName + '" chưa có dữ liệu'};
+    if (sheet.getLastRow() < 4)  return {success:false, error:'Sheet "' + sheetName + '" chưa có dữ liệu'};
     var rows  = sheet.getDataRange().getValues();
     var last  = rows[rows.length - 1];
     var products = locationProds.map(function(prod, i) {
@@ -199,7 +199,7 @@ function doPost(e) {
     var sheet         = ss.getSheetByName(sheetName);
 
     // Backup if schema changed
-    if (sheet && sheet.getLastColumn() !== buildHeaders(locationProds).length) {
+    if (sheet && sheet.getLastColumn() !== getColumnCount(locationProds)) {
       var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmm');
       sheet.setName(sheetName + '_backup_' + stamp);
       sheet = null;
@@ -207,13 +207,7 @@ function doPost(e) {
 
     if (!sheet) {
       sheet = ss.insertSheet(sheetName);
-      var headers = buildHeaders(locationProds);
-      var hRange  = sheet.getRange(1, 1, 1, headers.length);
-      hRange.setValues([headers]);
-      hRange.setBackground('#c1502e');
-      hRange.setFontColor('#ffffff');
-      hRange.setFontWeight('bold');
-      sheet.setFrozenRows(1);
+      setupHeaders(sheet, locationProds);
     }
 
     var row = buildRow(data, locationProds);
@@ -246,27 +240,96 @@ function doPost(e) {
   }
 }
 
-// ── Build header row ─────────────────────────────────────────
-function buildHeaders(locationProds) {
-  var h = ['Timestamp','Ngày','Vị trí','Tên'];
+// ── Column count (for schema check) ──────────────────────────
+function getColumnCount(locationProds) {
+  return 4 + locationProds.length * 14 + DENOMS.length * 3 + 11;
+}
+
+// ── Multi-row header setup ────────────────────────────────────
+function setupHeaders(sheet, locationProds) {
+  var totalCols = getColumnCount(locationProds);
+  var r1 = [], r2 = [], r3 = [];
+  var i;
+  for (i = 0; i < totalCols; i++) { r1.push(''); r2.push(''); r3.push(''); }
+
+  // ── Info cols (0–3) ──
+  r1[0]='Timestamp'; r1[1]='Ngày'; r1[2]='Vị trí'; r1[3]='Tên';
+
+  // ── Per-product cols (14 each) ──
+  var c = 4;
   locationProds.forEach(function(p) {
-    var n = '['+p.ten+'] ';
-    h.push(n+'Đầu H1', n+'Đầu H2', n+'Đầu Kho', n+'Hộp',
-           n+'Xuất', n+'Nhập', n+'Hư', n+'KM', n+'Chuyển',
-           n+'Cuối TT', n+'Dự kiến', n+'Lệch',
-           n+'Tiêu thụ (cái)', n+'Doanh thu');
+    r1[c] = p.ten;
+    r2[c]   = 'Đầu ca';   r2[c+4] = 'Trong ca';  r2[c+9] = 'Cuối ca';
+    r3[c]   = 'H1';       r3[c+1] = 'H2';        r3[c+2] = 'Kho';   r3[c+3] = 'Hộp';
+    r3[c+4] = 'Xuất';     r3[c+5] = 'Nhập';      r3[c+6] = 'Hư';    r3[c+7] = 'KM';   r3[c+8] = 'Chuyển';
+    r3[c+9] = 'Cuối TT';  r3[c+10]= 'Dự kiến';   r3[c+11]= 'Lệch';  r3[c+12]= 'Tiêu thụ'; r3[c+13]= 'Doanh thu';
+    c += 14;
   });
-  DENOMS.forEach(function(d) { h.push('ĐC '+denomLabel(d)+' (tờ)'); });
-  DENOMS.forEach(function(d) { h.push('CC '+denomLabel(d)+' (tờ)'); });
-  DENOMS.forEach(function(d) { h.push('CấtDT '+denomLabel(d)+' (tờ)'); });
-  h.push(
-    'Tổng tiền ĐC', 'Tổng tiền CC',
-    'Chi phí', 'DT chuyển khoản',
-    'Tổng DT hàng', 'Lệch tiền',
-    'Tổng cất DT', 'Còn lại ca sau',
-    'Người giao', 'Người nhận', 'Ghi chú'
-  );
-  return h;
+
+  // ── Denomination cols (9 × 3) ──
+  var denomC = c;
+  var dGroups = ['Tiền đầu ca', 'Tiền cuối ca', 'Cất doanh thu'];
+  var dLabels = DENOMS.map(function(d){ return denomLabel(d); });
+  dGroups.forEach(function(name) {
+    r1[c] = name;
+    dLabels.forEach(function(lbl, j){ r3[c+j] = lbl; });
+    c += DENOMS.length;
+  });
+
+  // ── Summary cols (11) ──
+  var sumC = c;
+  r1[c] = 'Tổng kết';  r1[c+8] = 'Bàn giao';
+  r3[c]  ='Tổng ĐC';   r3[c+1]='Tổng CC';   r3[c+2]='Chi phí';    r3[c+3]='DT NH';
+  r3[c+4]='Tổng DT';   r3[c+5]='Lệch tiền'; r3[c+6]='Tổng cất';   r3[c+7]='Còn lại';
+  r3[c+8]='Người giao';r3[c+9]='Người nhận';r3[c+10]='Ghi chú';
+
+  // ── Write values ──
+  sheet.getRange(1, 1, 3, totalCols).setValues([r1, r2, r3]);
+
+  // ── Merges ──
+  // Info: merge 3 rows per col
+  for (i = 1; i <= 4; i++) { sheet.getRange(1, i, 3, 1).merge(); }
+
+  // Products
+  var mc = 5;
+  locationProds.forEach(function() {
+    sheet.getRange(1, mc,   1, 14).merge();
+    sheet.getRange(2, mc,   1,  4).merge();
+    sheet.getRange(2, mc+4, 1,  5).merge();
+    sheet.getRange(2, mc+9, 1,  5).merge();
+    mc += 14;
+  });
+
+  // Denom groups: rows 1–2 merged for each group of 9
+  for (i = 0; i < 3; i++) {
+    sheet.getRange(1, denomC+1 + i*DENOMS.length, 2, DENOMS.length).merge();
+  }
+
+  // Summary groups: rows 1–2 merged
+  sheet.getRange(1, sumC+1,   2, 8).merge();
+  sheet.getRange(1, sumC+1+8, 2, 3).merge();
+
+  // ── Formatting ──
+  var full = sheet.getRange(1, 1, 3, totalCols);
+  full.setFontWeight('bold').setFontSize(10).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true);
+
+  // Row 1: dark
+  sheet.getRange(1, 1, 1, totalCols).setBackground('#1c1614').setFontColor('#ffffff');
+
+  // Row 2: info cells dark, product groups colored, rest dark
+  sheet.getRange(2, 1, 1, totalCols).setBackground('#1c1614').setFontColor('#ffffff');
+  mc = 5;
+  locationProds.forEach(function() {
+    sheet.getRange(2, mc,    1, 4).setBackground('#1a4d8f').setFontColor('#ffffff'); // Đầu ca – xanh
+    sheet.getRange(2, mc+4,  1, 5).setBackground('#7a3a0a').setFontColor('#ffffff'); // Trong ca – nâu
+    sheet.getRange(2, mc+9,  1, 5).setBackground('#1a5c35').setFontColor('#ffffff'); // Cuối ca – xanh lá
+    mc += 14;
+  });
+
+  // Row 3: accent red
+  sheet.getRange(3, 1, 1, totalCols).setBackground('#c1502e').setFontColor('#ffffff');
+
+  sheet.setFrozenRows(3);
 }
 
 // ── Build data row from POST payload ────────────────────────
