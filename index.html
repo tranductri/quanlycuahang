@@ -75,7 +75,7 @@
 const { useState, useEffect } = React;
 
 const GAS_URL = 'https://quanlycuahang.tdtri281090.workers.dev';
-const APP_VERSION = 'v55';
+const APP_VERSION = 'v56';
 
 const BANH_BAO_IMG = '/quanlycuahang/banh_bao.png';
 function productEmoji(ten) {
@@ -785,9 +785,6 @@ function Hub({data, setData, setScreen, prevData, products, authUser, onLogout})
   const trongActive  = products.some(p=>{ const v=data.products[p.idx]||{}; return (v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)+(v.chuyen||0)>0; });
   const chiPhiItems  = data.chi_phi_items||[];
   const chiPhiTotal  = chiPhiItems.reduce((s,i)=>s+(i.amount||0),0);
-  const addChiPhi    = () => setData({...data, chi_phi_items:[...chiPhiItems,{type:'',note:'',amount:0}]});
-  const updChiPhi    = (i,k,v) => { const items=[...chiPhiItems]; items[i]={...items[i],[k]:v}; setData({...data,chi_phi_items:items}); };
-  const removeChiPhi = i => setData({...data, chi_phi_items:chiPhiItems.filter((_,idx)=>idx!==i)});
   const cuoiDone    = products.length>0 && products.every(p=>{ const v=data.products[p.idx]||{}; return v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''; });
   const totalRev    = products.reduce((s,p)=>s+productRev(data.products[p.idx]||{},p.gia),0);
   const filledCount = products.filter(p=>{ const v=data.products[p.idx]||{}; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0; }).length;
@@ -809,6 +806,8 @@ function Hub({data, setData, setScreen, prevData, products, authUser, onLogout})
       next = {...data, products:ps};
     } else if (key === 'tien-cuoi') {
       next = {...data, tien_cuoi:{}, dt_nh:0};
+    } else if (key === 'chi-phi') {
+      next = {...data, chi_phi_items:[]};
     } else if (key === 'giao') {
       next = {...data, cat_dt:{}, ghi_chu:''};
     }
@@ -829,6 +828,9 @@ function Hub({data, setData, setScreen, prevData, products, authUser, onLogout})
       {key:'trong',    resetKey:'trong',     hasData:trongActive,
        title:'Xuất / Nhập / Hư / KM / Chuyển', icon:'🛒', active:trongActive,
        sub:trongActive?`Đang theo dõi · ${fmt(totalRev)}`:'Bấm + mỗi lần có thay đổi'},
+      {key:'chi-phi',  resetKey:'chi-phi',   hasData:chiPhiItems.length>0,
+       title:'Chi phí', icon:'💸', active:chiPhiItems.length>0,
+       sub:chiPhiItems.length>0?`${chiPhiItems.length} khoản · ${fmt(chiPhiTotal)}`:'Ghi nhận chi phí phát sinh'},
     ]},
     { label:'Cuối ca', tiles:[
       {key:'cuoi',      resetKey:'cuoi-hang', hasData:cuoiCount>0,
@@ -886,85 +888,7 @@ function Hub({data, setData, setScreen, prevData, products, authUser, onLogout})
           </div>
         )}
         <div style={{display:'flex',flexDirection:'column',gap:16}}>
-          {[sections[0],sections[1]].map(s=>(
-            <div key={s.label}>
-              <div className="h-section" style={{marginBottom:8}}>{s.label}</div>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {s.tiles.map(t=>(
-                  <div key={t.key} onClick={()=>setScreen(t.key)} style={{
-                    display:'flex',alignItems:'center',gap:14,padding:'14px 16px',background:'var(--card)',borderRadius:'var(--r-lg)',
-                    border:'1.5px solid '+(t.warn?'var(--warn)':t.done?'var(--ok)':'var(--line)'),
-                    cursor:'pointer',userSelect:'none'
-                  }}>
-                    <div style={{width:48,height:48,borderRadius:14,fontSize:24,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',
-                      background:t.warn?'var(--warn-soft,#fff3cd)':t.done?'var(--ok-soft)':t.active?'var(--accent-soft)':'var(--paper-2)'}}>{t.icon}</div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
-                        <span style={{fontSize:16,fontWeight:700,lineHeight:1.2}}>{t.title}</span>
-                        {t.done&&<span className="chip chip-ok" style={{padding:'1px 7px',fontSize:10}}>✓</span>}
-                        {t.warn&&<span style={{fontSize:10,fontWeight:700,padding:'1px 7px',borderRadius:6,background:'var(--warn-soft,#fff3cd)',color:'var(--warn)'}}>⚠</span>}
-                        {t.active&&!t.done&&!t.warn&&<span className="chip chip-accent" style={{padding:'1px 7px',fontSize:10}}>●</span>}
-                      </div>
-                      <div style={{fontSize:12,color:t.warn?'var(--warn)':'var(--muted)',marginTop:1}}>{t.sub}</div>
-                    </div>
-                    {t.hasData ? (
-                      <button onClick={e=>{ e.stopPropagation(); if(window.confirm(`Xoá dữ liệu "${t.title}"?`)) resetStep(t.resetKey); }}
-                        style={{width:36,height:36,borderRadius:10,flexShrink:0,border:0,cursor:'pointer',
-                          background:'var(--err-soft)',color:'var(--err)',fontSize:17,fontWeight:800,
-                          display:'flex',alignItems:'center',justifyContent:'center'}}>
-                        🗑
-                      </button>
-                    ) : (
-                      <span style={{color:'var(--muted)',fontSize:20}}>›</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {/* ── Chi phí ── */}
-          <div>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-              <span className="h-section">Chi phí</span>
-              {chiPhiTotal>0&&<span className="t-money" style={{fontSize:13,fontWeight:700,color:'var(--err)'}}>−{fmt(chiPhiTotal)}</span>}
-            </div>
-            <div className="m-card" style={{padding:12}}>
-              {chiPhiItems.map((item,i)=>(
-                <div key={i} style={{display:'flex',gap:6,alignItems:'center',marginBottom:8}}>
-                  <select value={item.type||''} onChange={e=>updChiPhi(i,'type',e.target.value)}
-                    style={{flex:'0 0 100px',height:40,borderRadius:10,border:'1.5px solid var(--line)',
-                      background:'var(--card)',padding:'0 8px',fontSize:12,fontWeight:600,color:'var(--ink)'}}>
-                    <option value="">Loại</option>
-                    <option value="phi_ship">Phí ship</option>
-                    <option value="khac">Khác</option>
-                  </select>
-                  <input type="text" value={item.note||''} placeholder="Nội dung"
-                    onChange={e=>updChiPhi(i,'note',e.target.value)}
-                    style={{flex:1,height:40,borderRadius:10,border:'1.5px solid var(--line)',
-                      background:'var(--card)',padding:'0 10px',fontSize:13,outline:'none'}}/>
-                  <input type="number" inputMode="numeric" min="0"
-                    value={(item.amount||0)===0?'':item.amount} placeholder="0"
-                    onChange={e=>updChiPhi(i,'amount',parseInt(e.target.value||'0',10)||0)}
-                    onFocus={e=>e.target.select()} onKeyDown={noNeg}
-                    className="t-num" style={{width:84,height:40,borderRadius:10,border:'1.5px solid var(--line)',
-                      background:'var(--card)',textAlign:'right',padding:'0 8px',fontSize:14,fontWeight:700,outline:'none'}}/>
-                  <button onClick={()=>removeChiPhi(i)}
-                    style={{width:34,height:34,borderRadius:9,background:'var(--err-soft)',color:'var(--err)',
-                      border:0,cursor:'pointer',fontSize:15,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                    🗑
-                  </button>
-                </div>
-              ))}
-              <button onClick={addChiPhi}
-                style={{width:'100%',height:38,borderRadius:10,border:'1.5px dashed var(--line)',
-                  background:'transparent',color:'var(--muted)',fontSize:13,fontWeight:600,cursor:'pointer'}}>
-                + Thêm chi phí
-              </button>
-            </div>
-          </div>
-
-          {sections.slice(2).map(s=>(
+          {sections.map(s=>(
             <div key={s.label}>
               <div className="h-section" style={{marginBottom:8}}>{s.label}</div>
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -1007,6 +931,103 @@ function Hub({data, setData, setScreen, prevData, products, authUser, onLogout})
             🗑 Xoá toàn bộ / Làm ca mới
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── CHI PHI ─── */
+function ChiPhi({data, setData, onBack, onDone}) {
+  const items = data.chi_phi_items||[];
+  const total = items.reduce((s,i)=>s+(i.amount||0),0);
+  const add    = () => setData({...data, chi_phi_items:[...items,{type:'',note:'',amount:0}]});
+  const upd    = (i,k,v) => { const a=[...items]; a[i]={...a[i],[k]:v}; setData({...data,chi_phi_items:a}); };
+  const remove = i => setData({...data, chi_phi_items:items.filter((_,idx)=>idx!==i)});
+  return (
+    <div className="screen">
+      <div className="app-bar" style={{background:'#7c4000',borderBottom:0,color:'#fff'}}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <button onClick={onBack} style={{width:40,height:40,borderRadius:12,background:'rgba(255,255,255,.12)',color:'#fff',fontSize:22}}>‹</button>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,opacity:.6,letterSpacing:1.2,textTransform:'uppercase',fontWeight:600}}>Trong ca</div>
+            <h1 style={{color:'#fff',fontSize:18,marginTop:2}}>Chi phí phát sinh</h1>
+          </div>
+          {items.length>0&&(
+            <div style={{background:'rgba(255,255,255,.15)',color:'#fff',borderRadius:10,padding:'5px 10px',fontSize:13,fontWeight:700,flexShrink:0}}>
+              {fmt(total)}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="scroll-area" style={{padding:'12px 14px 100px'}}>
+        {items.length===0&&(
+          <div style={{textAlign:'center',padding:'40px 20px',color:'var(--muted)'}}>
+            <div style={{fontSize:36,marginBottom:8}}>💸</div>
+            <div style={{fontSize:14,fontWeight:600}}>Chưa có chi phí nào</div>
+            <div style={{fontSize:12,marginTop:4}}>Bấm "Thêm" để ghi nhận chi phí phát sinh</div>
+          </div>
+        )}
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {items.map((item,i)=>(
+            <div key={i} className="m-card" style={{padding:'12px 14px'}}>
+              <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
+                <div style={{flex:1,display:'flex',flexDirection:'column',gap:8}}>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                    <select value={item.type||''} onChange={e=>upd(i,'type',e.target.value)}
+                      style={{height:42,borderRadius:10,border:'1.5px solid var(--line)',padding:'0 10px',
+                        fontSize:14,fontWeight:600,background:'var(--paper)',color:'var(--ink)'}}>
+                      <option value="">Loại chi phí</option>
+                      <option value="Phí ship">Phí ship</option>
+                      <option value="Mua nguyên liệu">Mua nguyên liệu</option>
+                      <option value="Khác">Khác</option>
+                    </select>
+                    <input type="number" inputMode="numeric" min="0" placeholder="Số tiền"
+                      value={item.amount||''} onChange={e=>upd(i,'amount',Math.max(0,parseInt(e.target.value||'0',10)||0))}
+                      onFocus={e=>e.target.select()} onKeyDown={noNeg}
+                      style={{height:42,borderRadius:10,border:'1.5px solid var(--line)',padding:'0 12px',
+                        fontSize:16,fontWeight:700,background:'var(--paper)',textAlign:'right',
+                        color:'var(--ink)',outline:'none'}}/>
+                  </div>
+                  <input type="text" placeholder="Ghi chú (tuỳ chọn)"
+                    value={item.note||''} onChange={e=>upd(i,'note',e.target.value)}
+                    style={{height:40,borderRadius:10,border:'1.5px solid var(--line)',padding:'0 12px',
+                      fontSize:14,background:'var(--paper)',color:'var(--ink)',outline:'none'}}/>
+                  {item.amount>0&&(
+                    <div style={{fontSize:13,fontWeight:700,color:'#7c4000',textAlign:'right'}}>{fmt(item.amount)}</div>
+                  )}
+                </div>
+                <button onClick={()=>remove(i)}
+                  style={{width:36,height:36,borderRadius:10,background:'var(--err-soft)',color:'var(--err)',
+                    fontSize:18,border:0,cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',marginTop:3}}>
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button onClick={add} style={{
+          marginTop:12,width:'100%',height:52,borderRadius:14,
+          border:'2px dashed #7c4000',background:'transparent',
+          color:'#7c4000',fontSize:16,fontWeight:700,cursor:'pointer',
+          display:'flex',alignItems:'center',justifyContent:'center',gap:8
+        }}>
+          + Thêm chi phí
+        </button>
+      </div>
+      <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'12px 14px',
+        background:'var(--paper)',borderTop:'1px solid var(--line)',
+        display:'flex',gap:10,alignItems:'center'}}>
+        {items.length>0&&(
+          <div style={{flex:1,fontSize:14,fontWeight:700}}>
+            <span style={{color:'var(--muted)',fontWeight:500}}>Tổng: </span>
+            <span style={{color:'#7c4000',fontSize:16}}>{fmt(total)}</span>
+          </div>
+        )}
+        <button onClick={onDone} style={{
+          flex:items.length===0?1:0,minWidth:120,
+          height:52,padding:'0 28px',borderRadius:14,
+          background:'#7c4000',color:'#fff',fontSize:16,fontWeight:700,border:0,cursor:'pointer'
+        }}>✓ Xong</button>
       </div>
     </div>
   );
@@ -1202,6 +1223,7 @@ function AppContent({ authUser, onLogout }) {
       {screen==='cuoi'      &&<CuoiCa   data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('hub')} products={locationProducts}/>}
       {screen==='tien-dau'  &&<Tien mode="dau"  data={data} setData={setData} onBack={()=>nav('hub')}      onDone={()=>nav('hub')} products={locationProducts}/>}
       {screen==='tien-cuoi' &&<Tien mode="cuoi" data={data} setData={setData} onBack={()=>nav('hub')}       onDone={()=>nav('giao')} products={locationProducts}/>}
+      {screen==='chi-phi'   &&<ChiPhi   data={data} setData={setData} onBack={()=>nav('hub')} onDone={()=>nav('hub')}/>}
       {screen==='giao'      &&<GiaoCa   data={data} setData={setData} onBack={()=>nav('tien-cuoi')} onSubmit={handleSubmit} submitting={submitting} products={locationProducts}/>}
       {toast&&<div className={`toast ${toast.type}`}>{toast.msg}</div>}
     </div>
