@@ -75,7 +75,7 @@
 const { useState, useEffect } = React;
 
 const GAS_URL = 'https://quanlycuahang.tdtri281090.workers.dev';
-const APP_VERSION = 'v52';
+const APP_VERSION = 'v53';
 
 const BANH_BAO_IMG = '/quanlycuahang/banh_bao.png';
 function productEmoji(ten) {
@@ -1022,6 +1022,7 @@ function AppContent({ authUser, onLogout }) {
   const [toast,       setToast]     = useState(null);
   const [submitting,  setSubmitting]= useState(false);
   const [hasUpdate,   setHasUpdate] = useState(false);
+  const [newVersion,  setNewVersion] = useState('');
   const [prevData,    setPrevData]  = useState(null);
   const [prevLoading, setPrevLoading] = useState(false);
   const [allProducts, setAllProducts]= useState(null);
@@ -1030,7 +1031,14 @@ function AppContent({ authUser, onLogout }) {
     if (!('serviceWorker' in navigator)) return;
     navigator.serviceWorker.register('/quanlycuahang/sw.js').then(reg=>{
       const onWaiting = () => {
-        if (navigator.serviceWorker.controller) setHasUpdate(true);
+        if (!navigator.serviceWorker.controller) return;
+        fetch('/quanlycuahang/sw.js?_=' + Date.now())
+          .then(r => r.text())
+          .then(txt => {
+            const m = txt.match(/const CACHE = 'kiem-ke-ca-(v\d+)'/);
+            if (m) setNewVersion(m[1]);
+          }).catch(()=>{});
+        setHasUpdate(true);
       };
       // SW đã ở trạng thái waiting ngay khi load (ví dụ sau khi tab nền tải xong)
       if (reg.waiting) { onWaiting(); }
@@ -1117,7 +1125,7 @@ function AppContent({ authUser, onLogout }) {
     <div style={{height:'100%',display:'flex',flexDirection:'column',overflow:'hidden'}}>
       {hasUpdate&&(
         <div style={{flexShrink:0,background:'var(--ok)',color:'#fff',padding:'10px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,zIndex:300}}>
-          <span style={{fontSize:14,fontWeight:600}}>🔄 Có bản cập nhật mới</span>
+          <span style={{fontSize:14,fontWeight:600}}>🔄 Có bản cập nhật mới{newVersion?` — ${newVersion}`:''}</span>
           <button onClick={()=>{
             navigator.serviceWorker.ready.then(reg=>{
               if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
