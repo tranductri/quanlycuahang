@@ -75,7 +75,7 @@
 const { useState, useEffect } = React;
 
 const GAS_URL = 'https://quanlycuahang.tdtri281090.workers.dev';
-const APP_VERSION = 'v51';
+const APP_VERSION = 'v52';
 
 const BANH_BAO_IMG = '/quanlycuahang/banh_bao.png';
 function productEmoji(ten) {
@@ -127,8 +127,8 @@ const INIT = () => {
     dau_ca_done: false,
     products: Array(20).fill(null).map(()=>({})),
     tien_dau:{}, tien_cuoi:{}, cat_dt:{},
-    chi_phi:0, dt_nh:0,
-    ghi_chu:''
+    chi_phi:0, chi_phi_type:'', chi_phi_note:'',
+    dt_nh:0, ghi_chu:''
   };
 };
 
@@ -191,9 +191,9 @@ const saveUser = vi_tri => {
 
 /* ─── ĐẦU CA ─── */
 const DAU_ZONES = [
+  {k:'dau_kho',icon:'📦', label:'Kho'},
   {k:'dau_h1', icon:'🔥', label:'Tủ 1'},
   {k:'dau_h2', icon:'🌡️', label:'Tủ 2'},
-  {k:'dau_kho',icon:'📦', label:'Kho'},
   {k:'dau_cu', icon:'🧁', label:'Hộp'},
 ];
 const noNeg = e => { if(e.key==='-'||e.key==='e'||e.key==='E') e.preventDefault(); };
@@ -416,6 +416,33 @@ function TrongCa({data, setData, onBack, onDone, products}) {
             );
           })}
         </div>
+
+        {/* Chi phí trong ca */}
+        <div className="m-card" style={{padding:14,marginTop:8}}>
+          <div className="h-section" style={{marginBottom:10}}>💸 Chi phí trong ca</div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            <div style={{display:'flex',gap:8}}>
+              <select value={data.chi_phi_type||''}
+                onChange={e=>setData({...data,chi_phi_type:e.target.value})}
+                style={{flex:'0 0 120px',height:44,borderRadius:10,border:'1.5px solid var(--line)',
+                  background:'var(--card)',padding:'0 10px',fontSize:13,fontWeight:600,color:'var(--ink)'}}>
+                <option value="">Chọn loại</option>
+                <option value="phi_ship">Phí ship</option>
+                <option value="khac">Khác</option>
+              </select>
+              <input type="text" value={data.chi_phi_note||''} placeholder="Nội dung chi phí"
+                onChange={e=>setData({...data,chi_phi_note:e.target.value})}
+                style={{flex:1,height:44,borderRadius:10,border:'1.5px solid var(--line)',
+                  background:'var(--card)',padding:'0 12px',fontSize:14,outline:'none',
+                  borderColor:data.chi_phi>0&&!data.chi_phi_note?'var(--err)':'var(--line)'}}/>
+            </div>
+            <input type="number" inputMode="numeric" min="0"
+              value={data.chi_phi===0?'':data.chi_phi} placeholder="Số tiền (không bắt buộc)"
+              onChange={e=>setData({...data,chi_phi:parseInt(e.target.value||'0',10)||0})}
+              onFocus={e=>e.target.select()} onKeyDown={noNeg}
+              className="field-input t-num" style={{height:48,fontSize:17,fontWeight:700,textAlign:'right'}}/>
+          </div>
+        </div>
       </div>
       <div className="bottom-bar">
         <button className="btn-primary" onClick={onDone}>Cuối ca → Đối chiếu</button>
@@ -580,19 +607,11 @@ function Tien({mode, data, setData, onBack, onDone, products}) {
         {isCuoi&&(
           <div className="m-card" style={{padding:14,marginTop:12}}>
             <div className="h-section" style={{marginBottom:10}}>Trừ ra khỏi két</div>
-            <div style={{display:'flex',flexDirection:'column',gap:10}}>
-              <div>
-                <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>💸 Chi phí trong ca</label>
-                <input type="number" inputMode="numeric" value={chiPhi===0?'':chiPhi} placeholder="0"
-                  onChange={e=>setData({...data,chi_phi:parseInt(e.target.value||'0',10)||0})}
-                  onFocus={e=>e.target.select()} className="field-input t-num" style={{height:48,fontSize:17,fontWeight:700,textAlign:'right'}}/>
-              </div>
-              <div>
-                <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>💳 Doanh thu chuyển khoản / Momo / NH</label>
-                <input type="number" inputMode="numeric" value={dtNH===0?'':dtNH} placeholder="0"
-                  onChange={e=>setData({...data,dt_nh:parseInt(e.target.value||'0',10)||0})}
-                  onFocus={e=>e.target.select()} className="field-input t-num" style={{height:48,fontSize:17,fontWeight:700,textAlign:'right'}}/>
-              </div>
+            <div>
+              <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>💳 Doanh thu chuyển khoản / Momo / NH</label>
+              <input type="number" inputMode="numeric" value={dtNH===0?'':dtNH} placeholder="0"
+                onChange={e=>setData({...data,dt_nh:parseInt(e.target.value||'0',10)||0})}
+                onFocus={e=>e.target.select()} className="field-input t-num" style={{height:48,fontSize:17,fontWeight:700,textAlign:'right'}}/>
             </div>
           </div>
         )}
@@ -788,7 +807,7 @@ function Hub({data, setData, setScreen, prevData, products, authUser, onLogout})
     : 0;
   const tienDauDone = tienDauTotal>0;
   const tienCuoiDone= tienCuoiTotal>0;
-  const trongActive = products.some(p=>{ const v=data.products[p.idx]||{}; return (v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)+(v.chuyen||0)>0; });
+  const trongActive = products.some(p=>{ const v=data.products[p.idx]||{}; return (v.xuat||0)+(v.nhap||0)+(v.hu||0)+(v.km||0)+(v.chuyen||0)>0; })||(data.chi_phi||0)>0;
   const cuoiDone    = products.length>0 && products.every(p=>{ const v=data.products[p.idx]||{}; return v.cuoi_thuc!==undefined&&v.cuoi_thuc!==''; });
   const totalRev    = products.reduce((s,p)=>s+productRev(data.products[p.idx]||{},p.gia),0);
   const filledCount = products.filter(p=>{ const v=data.products[p.idx]||{}; return (v.dau_h1||0)+(v.dau_h2||0)+(v.dau_kho||0)+(v.dau_cu||0)>0; }).length;
@@ -804,12 +823,12 @@ function Hub({data, setData, setScreen, prevData, products, authUser, onLogout})
       next = {...data, tien_dau:{}};
     } else if (key === 'trong') {
       const ps = data.products.map(v=>{ const {xuat,nhap,hu,km,chuyen,...r}=v; return r; });
-      next = {...data, products:ps};
+      next = {...data, products:ps, chi_phi:0, chi_phi_type:'', chi_phi_note:''};
     } else if (key === 'cuoi-hang') {
       const ps = data.products.map(v=>{ const {cuoi_kho,cuoi_hop,cuoi_thuc,...r}=v; return r; });
       next = {...data, products:ps};
     } else if (key === 'tien-cuoi') {
-      next = {...data, tien_cuoi:{}, chi_phi:0, dt_nh:0};
+      next = {...data, tien_cuoi:{}, dt_nh:0};
     } else if (key === 'giao') {
       next = {...data, cat_dt:{}, ghi_chu:''};
     }
@@ -821,7 +840,7 @@ function Hub({data, setData, setScreen, prevData, products, authUser, onLogout})
     { label:'Đầu ca', tiles:[
       {key:'dau',      resetKey:'dau-hang',  hasData:filledCount>0,
        title:'Kiểm hàng', icon:'📦', done:hangDone&&dauLechCount===0, warn:hangDone&&dauLechCount>0,
-       sub:hangDone?(dauLechCount>0?`⚠ ${dauLechCount} sản phẩm lệch ca trước`:`${filledCount}/${nP} sản phẩm đã đếm`):'Đếm tồn hàng + bánh cũ'},
+       sub:hangDone?(dauLechCount>0?`⚠ ${dauLechCount} sản phẩm lệch ca trước`:`${filledCount}/${nP} sản phẩm đã đếm`):'Đếm tồn hàng'},
       {key:'tien-dau', resetKey:'tien-dau',  hasData:tienDauDone,
        title:'Kiểm tiền', icon:'💵', done:tienDauDone,
        sub:tienDauDone?`Tổng ${fmt(tienDauTotal)}`:'Đếm tiền mặt tại két'},
