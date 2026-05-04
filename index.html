@@ -75,7 +75,7 @@
 const { useState, useEffect } = React;
 
 const GAS_URL = 'https://quanlycuahang.tdtri281090.workers.dev';
-const APP_VERSION = 'v59';
+const APP_VERSION = 'v60';
 
 const BANH_BAO_IMG = '/quanlycuahang/banh_bao.png';
 function productEmoji(ten) {
@@ -985,9 +985,13 @@ function ChiPhi({data, setData, onBack, onDone}) {
                   padding:'0 10px',marginBottom:8,fontSize:14,fontWeight:600,
                   background:'var(--paper)',color:'var(--ink)',boxSizing:'border-box'}}>
                 <option value="">Loại chi phí</option>
-                <option value="Phí ship">Phí ship</option>
-                <option value="Mua nguyên liệu">Mua nguyên liệu</option>
-                <option value="Khác">Khác</option>
+                <option value="Ship bánh bao">Ship bánh bao</option>
+                <option value="Ship sữa chua">Ship sữa chua</option>
+                <option value="Hộp xốp">Hộp xốp</option>
+                <option value="Bịch ni lông 15">Bịch ni lông 15</option>
+                <option value="Bịch ni lông 20">Bịch ni lông 20</option>
+                <option value="Rác">Rác</option>
+                <option value="Chi phí khác">Chi phí khác</option>
               </select>
               <input type="number" inputMode="numeric" min="0" placeholder="Số tiền"
                 value={item.amount||''} onChange={e=>upd(i,'amount',Math.max(0,parseInt(e.target.value||'0',10)||0))}
