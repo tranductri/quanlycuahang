@@ -75,7 +75,7 @@
 const { useState, useEffect } = React;
 
 const GAS_URL = 'https://quanlycuahang.tdtri281090.workers.dev';
-const APP_VERSION = 'v66';
+const APP_VERSION = 'v67';
 
 const BANH_BAO_IMG = '/quanlycuahang/banh_bao.png';
 function productEmoji(ten) {
@@ -620,11 +620,23 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting, products}) {
   const expected  = totalDau+(totalRev-(data.dt_nh||0))-chiPhiSum;
   const tienDiff  = totalCuoi-expected;
   const totalCat  = DENOMS.reduce((s,d)=>s+(catDt[d]||0)*d,0);
+  const dtTienMat = totalCuoi - totalDau;
+  const catDiff   = totalCat - dtTienMat;
   const rem       = DENOMS.map(d=>({d,n:(data.tien_cuoi?.[d]||0)-(catDt[d]||0)}));
   const totalRem  = rem.reduce((s,r)=>s+r.n*r.d,0);
   const hasNeg    = rem.some(r=>r.n<0);
   const remRows   = rem.filter(r=>(data.tien_cuoi?.[r.d]||0)>0||(catDt[r.d]||0)>0);
   const canSubmit = !submitting&&!hasNeg;
+  const suggestCat = () => {
+    const result = {}; let remaining = dtTienMat;
+    for (const d of DENOMS) {
+      const avail = data.tien_cuoi?.[d]||0;
+      const take  = Math.min(avail, Math.floor(remaining/d));
+      if (take>0) result[d]=take;
+      remaining -= take*d;
+    }
+    setData({...data, cat_dt:result});
+  };
   return (
     <div className="screen">
       <div className="app-bar">
@@ -656,7 +668,20 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting, products}) {
         </div>
 
         <div className="m-card" style={{padding:14,marginBottom:12}}>
-          <div className="h-section" style={{marginBottom:10}}>💰 Cất doanh thu</div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+            <div>
+              <div className="h-section" style={{marginBottom:2}}>💰 Cất doanh thu</div>
+              <div style={{fontSize:12,color:'var(--muted)'}}>Cần cất: <span style={{fontWeight:700,color:'var(--ink)'}}>{fmt(dtTienMat)}</span></div>
+            </div>
+            {dtTienMat>0&&(
+              <button onClick={suggestCat}
+                style={{padding:'6px 12px',borderRadius:10,background:'var(--accent-soft)',
+                  color:'var(--accent-ink)',fontSize:12,fontWeight:700,
+                  border:'1.5px solid var(--accent)',cursor:'pointer',flexShrink:0}}>
+                ✨ Gợi ý
+              </button>
+            )}
+          </div>
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
             {DENOMS.map(d=>{
               const n=catDt[d]||0; const has=n>0;
@@ -689,11 +714,21 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting, products}) {
               );
             })}
           </div>
-          {totalCat>0&&(
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:10,
-              padding:'10px 12px',borderRadius:10,background:'var(--accent-soft)'}}>
-              <span style={{fontSize:13,fontWeight:700,color:'var(--accent-ink)'}}>Tổng cất</span>
-              <span className="t-money" style={{fontSize:18,fontWeight:800,color:'var(--accent-ink)'}}>{fmt(totalCat)}</span>
+          {dtTienMat>0&&(
+            <div style={{marginTop:10,padding:'10px 12px',borderRadius:10,
+              background:catDiff===0?'var(--ok-soft)':catDiff>0?'#fff3cd':'var(--err-soft)',
+              display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,
+                  color:catDiff===0?'var(--ok)':catDiff>0?'#856404':'var(--err)'}}>
+                  {catDiff===0?'✓ Đã cất đủ':catDiff>0?'⚠ Cất thừa':'⚠ Còn thiếu'}
+                </div>
+                <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>Đã cất: {fmt(totalCat)}</div>
+              </div>
+              <span className="t-money" style={{fontSize:18,fontWeight:800,
+                color:catDiff===0?'var(--ok)':catDiff>0?'#856404':'var(--err)'}}>
+                {catDiff===0?'—':(catDiff>0?'+':'')+fmt(catDiff)}
+              </span>
             </div>
           )}
         </div>
