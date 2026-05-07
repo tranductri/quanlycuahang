@@ -75,7 +75,7 @@
 const { useState, useEffect } = React;
 
 const GAS_URL = 'https://quanlycuahang.tdtri281090.workers.dev';
-const APP_VERSION = 'v62';
+const APP_VERSION = 'v63';
 
 const BANH_BAO_IMG = '/quanlycuahang/banh_bao.png';
 function productEmoji(ten) {
@@ -580,7 +580,6 @@ function Tien({mode, data, setData, onBack, onDone, products}) {
         </div>
         {isCuoi&&(
           <div className="m-card" style={{padding:14,marginTop:12}}>
-            <div className="h-section" style={{marginBottom:10}}>Trừ ra khỏi két</div>
             <div>
               <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>💳 Doanh thu chuyển khoản / Momo / NH</label>
               <input type="number" inputMode="numeric" value={dtNH===0?'':dtNH} placeholder="0"
@@ -596,11 +595,9 @@ function Tien({mode, data, setData, onBack, onDone, products}) {
             <span style={{fontSize:13,fontWeight:700,color:'var(--ink-2)'}}>∑ Tổng tiền đếm được</span>
             <span className="t-money" style={{fontSize:22,fontWeight:800,color:'var(--ink)'}}>{fmt(total)}</span>
           </div>
-          {isCuoi&&(
+          {isCuoi&&chiPhi>0&&(
             <div style={{paddingTop:8,borderTop:'1px dashed rgba(0,0,0,.1)',fontSize:12,lineHeight:1.6}}>
-              <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--muted)'}}>Tiền đầu ca</span><span className="t-money">{fmt(dauTotal)}</span></div>
-              {dtNH>0&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--muted)'}}>− Chuyển khoản / NH</span><span className="t-money">−{fmt(dtNH)}</span></div>}
-              {chiPhi>0&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--muted)'}}>− Chi phí</span><span className="t-money">−{fmt(chiPhi)}</span></div>}
+              <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--muted)'}}>− Chi phí</span><span className="t-money">−{fmt(chiPhi)}</span></div>
             </div>
           )}
         </div>
