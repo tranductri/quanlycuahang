@@ -75,7 +75,7 @@
 const { useState, useEffect } = React;
 
 const GAS_URL = 'https://quanlycuahang.tdtri281090.workers.dev';
-const APP_VERSION = 'v64';
+const APP_VERSION = 'v65';
 
 const BANH_BAO_IMG = '/quanlycuahang/banh_bao.png';
 function productEmoji(ten) {
@@ -578,6 +578,14 @@ function Tien({mode, data, setData, onBack, onDone, products}) {
             );
           })}
         </div>
+        <div className="m-card" style={{marginTop:12,padding:14,
+          background:isCuoi?'var(--paper-2)':'var(--accent-soft)',
+          borderColor:isCuoi?'var(--line)':'var(--accent)',borderWidth:1.5}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span style={{fontSize:13,fontWeight:700,color:'var(--ink-2)'}}>∑ Tổng tiền đếm được</span>
+            <span className="t-money" style={{fontSize:22,fontWeight:800,color:'var(--ink)'}}>{fmt(total)}</span>
+          </div>
+        </div>
         {isCuoi&&(
           <div className="m-card" style={{padding:14,marginTop:12}}>
             <div>
@@ -588,14 +596,6 @@ function Tien({mode, data, setData, onBack, onDone, products}) {
             </div>
           </div>
         )}
-        <div className="m-card" style={{marginTop:12,padding:14,
-          background:isCuoi?'var(--paper-2)':'var(--accent-soft)',
-          borderColor:isCuoi?'var(--line)':'var(--accent)',borderWidth:1.5}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:isCuoi?8:0}}>
-            <span style={{fontSize:13,fontWeight:700,color:'var(--ink-2)'}}>∑ Tổng tiền đếm được</span>
-            <span className="t-money" style={{fontSize:22,fontWeight:800,color:'var(--ink)'}}>{fmt(total)}</span>
-          </div>
-        </div>
       </div>
       <div className="bottom-bar">
         <button className={`btn-primary ${isCuoi?'is-ok':''}`} onClick={onDone} disabled={total===0}>
