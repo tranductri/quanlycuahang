@@ -75,7 +75,7 @@
 const { useState, useEffect } = React;
 
 const GAS_URL = 'https://quanlycuahang.tdtri281090.workers.dev';
-const APP_VERSION = 'v65';
+const APP_VERSION = 'v66';
 
 const BANH_BAO_IMG = '/quanlycuahang/banh_bao.png';
 function productEmoji(ten) {
@@ -590,8 +590,9 @@ function Tien({mode, data, setData, onBack, onDone, products}) {
           <div className="m-card" style={{padding:14,marginTop:12}}>
             <div>
               <label style={{fontSize:12,color:'var(--muted)',fontWeight:600,display:'block',marginBottom:4}}>💳 Doanh thu chuyển khoản / Momo / NH</label>
-              <input type="number" inputMode="numeric" value={dtNH===0?'':dtNH} placeholder="0"
-                onChange={e=>setData({...data,dt_nh:parseInt(e.target.value||'0',10)||0})}
+              <input type="text" inputMode="numeric" placeholder="0"
+                value={dtNH===0?'':Math.round(dtNH).toLocaleString('vi-VN')}
+                onChange={e=>{ const v=parseInt(e.target.value.replace(/\D/g,'')||'0',10)||0; setData({...data,dt_nh:v}); }}
                 onFocus={e=>e.target.select()} className="field-input t-num" style={{height:48,fontSize:17,fontWeight:700,textAlign:'right'}}/>
             </div>
           </div>
