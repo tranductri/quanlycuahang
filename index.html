@@ -626,8 +626,7 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting, products}) {
   const totalRem  = rem.reduce((s,r)=>s+r.n*r.d,0);
   const hasNeg    = rem.some(r=>r.n<0);
   const remRows   = rem.filter(r=>(data.tien_cuoi?.[r.d]||0)>0||(catDt[r.d]||0)>0);
-  const ghiChuOk  = catDiff===0||(data.ghi_chu||'').trim()!=='';
-  const canSubmit = !submitting&&!hasNeg&&ghiChuOk;
+  const canSubmit = !submitting&&!hasNeg;
   const suggestCat = () => {
     const result = {}; let remaining = dtTienMat;
     for (const d of DENOMS) {
@@ -776,7 +775,7 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting, products}) {
           <div>
             <label style={{fontSize:12,fontWeight:600,display:'block',marginBottom:4,
               color:!ghiChuOk?'var(--err)':'var(--muted)'}}>
-              📝 {!ghiChuOk?'Bắt buộc ghi chú khi cất không khớp':'Ghi chú (nếu có lệch)'}
+              📝 Ghi chú (nếu có)
             </label>
             <textarea className="field-input" placeholder="Lý do lệch tiền/hàng…" value={data.ghi_chu||''} onChange={e=>upd('ghi_chu',e.target.value)} rows={3} style={{height:'auto',fontSize:14,padding:10,resize:'none'}}/>
           </div>
@@ -787,11 +786,7 @@ function GiaoCa({data, setData, onBack, onSubmit, submitting, products}) {
           background:'var(--err-soft)',color:'var(--err)',fontWeight:700,fontSize:13}}>
           ⚠ Kiểm tra lại số tờ đã cất
         </div>}
-        {!ghiChuOk&&!hasNeg&&<div style={{marginBottom:8,padding:'8px 12px',borderRadius:8,
-          background:'var(--err-soft)',color:'var(--err)',fontWeight:700,fontSize:13}}>
-          ⚠ Cần ghi chú lý do cất không khớp
-        </div>}
-        <button className="btn-primary is-ok" disabled={!canSubmit} onClick={onSubmit}>
+<button className="btn-primary is-ok" disabled={!canSubmit} onClick={onSubmit}>
           {submitting?'⏳ Đang gửi…':'✓ Gửi báo cáo ca'}
         </button>
       </div>
